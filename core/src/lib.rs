@@ -3,6 +3,7 @@
 //! VOID Only Interprets Directives: The minimal, high-efficiency native
 //! runtime for hands-free voice note-taking and directive execution.
 
+pub mod audio;
 pub mod db;
 pub mod models;
 
