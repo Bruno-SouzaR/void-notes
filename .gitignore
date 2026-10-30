@@ -1,0 +1,39 @@
+# Generated / Build outputs
+target/
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+*.apk
+*.aab
+*.app
+*.ipa
+
+# Models & Weights (downloaded on demand or via install scripts)
+models/*.bin
+models/*.onnx
+models/*.tflite
+*.mlmodelc
+
+# Databases & Local User Data
+*.db
+*.db-wal
+*.db-shm
+data/*.db
+data/cache.db
+notes/
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
