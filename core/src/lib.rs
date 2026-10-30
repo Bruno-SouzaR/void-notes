@@ -5,7 +5,9 @@
 
 pub mod audio;
 pub mod db;
+pub mod kws;
 pub mod models;
+pub mod stt;
 
 /// Core error types for the V.O.I.D. engine.
 #[derive(thiserror::Error, Debug)]
