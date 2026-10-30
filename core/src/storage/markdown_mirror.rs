@@ -96,7 +96,7 @@ mod tests {
         let temp = tempdir().expect("tempdir failed");
         let mirror = MarkdownMirror::new(temp.path());
 
-        let mut note1 = DirectiveNote::new("Nota 1 ativa", "nota 1", 1000);
+        let note1 = DirectiveNote::new("Nota 1 ativa", "nota 1", 1000);
         let mut note2 = DirectiveNote::new("Nota 2 cancelada", "nota 2", 1200);
         note2.deleted_at = Some(chrono::Utc::now());
 

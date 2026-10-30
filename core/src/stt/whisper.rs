@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use crate::Result;
 
 /// Configuration for offline Whisper speech recognition.
