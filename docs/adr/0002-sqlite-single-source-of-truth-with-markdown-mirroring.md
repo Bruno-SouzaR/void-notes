@@ -1,0 +1,3 @@
+# SQLite as Single Source of Truth with Asynchronous Markdown Mirroring
+
+Writing transcribed directives directly to disk files (`notes/YYYY-MM-DD.md`) risks filesystem race conditions, write locks, and data loss when editors like Obsidian, VS Code, or Neovim hold file buffers open. We decided that SQLite with Write-Ahead Logging (WAL) and client-generated UUID v4 keys is the sole transactional source of truth, delegating Markdown file updates to an asynchronous background reconciler with exponential backoff on write locks. This guarantees zero lost directives under concurrent editor access while preserving user data sovereignty in human-readable Markdown files.

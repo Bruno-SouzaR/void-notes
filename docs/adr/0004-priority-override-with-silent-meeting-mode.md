@@ -1,0 +1,3 @@
+# Priority Override Shortcut with Automatic Silent Mode During Active Audio Sessions
+
+Continuous wake-word listening during active telephone calls or video conferences (Google Meet, Zoom) causes accidental activations and microphone conflicts. However, users frequently need to record urgent directives during meetings. We decided that passive wake-word detection automatically suspends when interactive communication audio sessions are detected, but physical gestures and keyboard shortcuts (`PriorityOverride`) can force immediate capture in an enforced silent mode (suppressing all audio chimes, relying exclusively on discrete haptic or visual feedback). This prevents audio disruption in professional meetings while guaranteeing on-demand note capture.

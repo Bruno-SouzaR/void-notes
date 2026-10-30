@@ -1,0 +1,3 @@
+# Tiered Acoustic Pipeline for Sub-2% Idle CPU
+
+To achieve hands-free continuous wake-word listening on battery-constrained mobile devices and low-power laptops without thermal throttling, running speech-to-text models continuously is unviable. We decided to structure audio processing into a strict 4-stage tiered pipeline: Tier 0 WebRTC energy gate, Tier 1 lightweight keyword spotting (`"Void"`), Tier 2 Silero VAD endpointing, and Tier 3 on-demand quantized `whisper.cpp` execution. This reduces idle CPU utilization to under 1.5% of a single core and RAM to under 45 MB while maintaining sub-second transcription response times.

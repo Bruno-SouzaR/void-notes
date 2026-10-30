@@ -1,0 +1,3 @@
+# Shared Rust Native Core with Flutter Cross-Platform UI
+
+V.O.I.D. must run across Linux, Android, and iOS while maintaining extreme resource efficiency and zero duplicated speech pipelines across programming languages. We decided to build the entire audio capture, keyword spotting, voice activity detection, speech recognition, and database layer as a single native Rust core library, bound to a unified Flutter UI via `flutter_rust_bridge` v2. This eliminates runtime garbage collection overhead in the audio processing thread, compiles `whisper.cpp` with native SIMD intrinsics (AVX2/NEON), and allows a single developer to ship identical logic across desktop and mobile.
