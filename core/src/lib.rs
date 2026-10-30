@@ -5,8 +5,10 @@
 
 pub mod audio;
 pub mod db;
+pub mod feedback;
 pub mod kws;
 pub mod models;
+pub mod storage;
 pub mod stt;
 
 /// Core error types for the V.O.I.D. engine.
