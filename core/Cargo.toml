@@ -1,0 +1,19 @@
+[package]
+name = "void-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Bruno Souza <brunosouzar@users.noreply.github.com>"]
+description = "Core native engine for V.O.I.D. (VOID Only Interprets Directives)"
+license = "MIT"
+
+[dependencies]
+rusqlite = { version = "0.31", features = ["bundled"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+parking_lot = "0.12"
+
+[dev-dependencies]
+tempfile = "3.10"
