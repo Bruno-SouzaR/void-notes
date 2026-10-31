@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import warnings
+warnings.filterwarnings('ignore')
 import os
 import sys
 import subprocess
@@ -99,17 +101,17 @@ def main():
                 noise_floor = (0.05 * chunk_rms) + (0.95 * noise_floor)
                 noise_floor = max(0.003, noise_floor)
 
-            if chunk_rms > 0.008:
-                bars = int(min(1.0, chunk_rms * 30.0) * 10)
-                bar_str = "█" * bars + "░" * (10 - bars)
-                sys.stdout.write(f"\r  [●] Ouvindo: [{bar_str}] RMS: {chunk_rms:.4f}  ")
-                sys.stdout.flush()
-
             # Predict with custom model
             predictions = oww_model.predict(i16_arr)
             prob = predictions.get("void_custom", 0.0)
 
-            if prob >= 0.50:
+            # Live passive meter (always visible so user sees mic status and confidence)
+            bars = int(min(1.0, chunk_rms * 30.0) * 10)
+            bar_str = "█" * bars + "░" * (10 - bars)
+            sys.stdout.write(f"\r  [●] Ouvindo: [{bar_str}] RMS: {chunk_rms:.4f} | 'VOID': {prob*100:5.1f}%  ")
+            sys.stdout.flush()
+
+            if prob >= 0.40:
                 now_str = time.strftime("%H:%M:%S")
                 print(f"\n\n⚡ [{now_str}] WakeWord 'VOID' Detectado (Confiança: {prob*100:.1f}%)!", flush=True)
 
