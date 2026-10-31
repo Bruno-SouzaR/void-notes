@@ -47,6 +47,7 @@ The single source of truth for any AI agent working in this repository. In case 
 - **Zero Hallucination / Evidence-Grounded**: Code claims and documentation must be grounded in verified runtime behaviors and official API documentation.
 - **Zero Internal Bleed-Through**: NEVER insert references to conversations, prompt deliberations, internal workflows, personal tools, or external inspirations into project artifacts.
 - **Zero Backend Configuration Leakage**: The frontend UI MUST NEVER display internal model identifiers, quantization formats, internal buffer sizes, or low-level infrastructure details. All UI status lines, headers, badges, and progress indicators must be strictly oriented to the domain (e.g., "Ouvindo por 'Void'", "Gravando diretiva...", "Diretiva salva").
+- **Database Naming Conventions**: All database tables, columns, indices, and schemas MUST follow lowercase `snake_case` in English. Table names MUST be in the plural (`notes`), column attributes in the singular (`content`, `audio_duration_ms`), primary keys named `id` defaulting to `UUID` (UUID v4 or ULID/UUIDv7) as the gold standard for conflict prevention, and foreign keys following `<singular_table>_id`. All persistent tables MUST define UTC timestamps (`created_at`, `updated_at`, `deleted_at`).
 
 ## Documentation & Comment Standards
 
