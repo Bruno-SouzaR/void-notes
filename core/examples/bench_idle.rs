@@ -1,10 +1,10 @@
 use std::fs;
 use std::time::Instant;
 use tempfile::tempdir;
-use void_core::feedback::FeedbackProfile;
-use void_core::kws::MockWakeWordDetector;
-use void_core::stt::MockSpeechRecognizer;
-use void_core::VoidService;
+use void_notes_core::feedback::FeedbackProfile;
+use void_notes_core::kws::MockWakeWordDetector;
+use void_notes_core::stt::MockSpeechRecognizer;
+use void_notes_core::VoidService;
 
 fn get_rss_kb() -> usize {
     if let Ok(status) = fs::read_to_string("/proc/self/status") {
@@ -24,7 +24,7 @@ fn get_rss_kb() -> usize {
 
 fn main() -> anyhow::Result<()> {
     println!("============================================================");
-    println!("  V.O.I.D. — Idle Performance & Resource Benchmark");
+    println!("  void-notes — Idle Performance & Resource Benchmark");
     println!("============================================================");
 
     let temp_dir = tempdir()?;

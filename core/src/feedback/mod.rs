@@ -92,7 +92,7 @@ impl FeedbackController {
             FeedbackEvent::MicrophoneError => {
                 actions.push(FeedbackAction::TriggerHaptic(HapticPattern::RejectionPulse));
                 actions.push(FeedbackAction::EmitNotification {
-                    title: "V.O.I.D. — Erro de Microfone".to_string(),
+                    title: "void-notes — Erro de Microfone".to_string(),
                     body: "Acesso ao microfone indisponível ou bloqueado.".to_string(),
                 });
             }

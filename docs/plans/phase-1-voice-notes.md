@@ -1,6 +1,6 @@
-# Implementation Plan — V.O.I.D. Phase 1: Multiplatform Voice Notes
+# Implementation Plan — void-notes Phase 1: Multiplatform Voice Notes
 
-**Goal:** Build the foundational, ultra-lightweight, hands-free voice note-taking assistant (V.O.I.D.) across Linux, Android, and iOS using a shared Rust core, Flutter UI, tiered audio pipeline, local SQLite, and daily Markdown mirroring.
+**Goal:** Build the foundational, ultra-lightweight, hands-free voice note-taking application (`void-notes`) across Linux, Android, and iOS using a shared Rust core, Flutter UI, tiered audio pipeline, local SQLite, and daily Markdown mirroring.
 
 ---
 

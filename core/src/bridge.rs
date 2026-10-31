@@ -9,7 +9,7 @@ use crate::{Result, VoidError};
 
 static GLOBAL_SERVICE: OnceLock<Mutex<VoidService>> = OnceLock::new();
 
-/// Initializes the global V.O.I.D. singleton engine from Flutter.
+/// Initializes the global void-notes singleton engine from Flutter.
 pub fn init_engine(db_path: String, notes_dir: String, silent_mode: bool) -> Result<()> {
     let profile = if silent_mode {
         FeedbackProfile::SilentMeeting
@@ -24,7 +24,7 @@ pub fn init_engine(db_path: String, notes_dir: String, silent_mode: bool) -> Res
     )?;
 
     if GLOBAL_SERVICE.get().is_some() {
-        return Err(VoidError::Domain("V.O.I.D. engine is already initialized".to_string()));
+        return Err(VoidError::Domain("void-notes engine is already initialized".to_string()));
     }
 
     let _ = GLOBAL_SERVICE.set(Mutex::new(service));
@@ -35,7 +35,7 @@ pub fn init_engine(db_path: String, notes_dir: String, silent_mode: bool) -> Res
 fn get_service() -> Result<&'static Mutex<VoidService>> {
     GLOBAL_SERVICE
         .get()
-        .ok_or_else(|| VoidError::Domain("V.O.I.D. engine not initialized".to_string()))
+        .ok_or_else(|| VoidError::Domain("void-notes engine not initialized".to_string()))
 }
 
 /// Triggers manual recording bypass (hotkey / action button).

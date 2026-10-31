@@ -1,22 +1,23 @@
-# V.O.I.D. — VOID Only Interprets Directives
+# void-notes
 
-> An advanced computational assistant inspired by the classic cadence of a digital butler, characterized by an existentialist, minimalist, and technical posture.
+> Ultra-lightweight, hands-free voice note-taking application across Linux, Android, and iOS.
 
-V.O.I.D. prioritizes silent attentiveness, precise interpretation of directives, zero unnecessary computation, and immediate local execution.
+`void-notes` provides high-efficiency local voice capture, instant offline transcription, and conflict-free local persistence with minimal CPU and battery footprint.
 
-## Phase 1: Multiplatform Voice Notes Assistant
-
-Phase 1 provides an ultra-lightweight, hands-free voice note-taking system across **Linux**, **Android**, and **iOS**:
+## Features
 
 - **Continuous Background Wake Word**: Low-power acoustic detection (`"Void"` / `"Hey Void"`) running at `< 1.5%` idle CPU on a single core via a tiered audio pipeline.
 - **On-Demand Local STT**: Offline speech-to-text with quantized `whisper.cpp` (`base-q5_1` / `tiny-q5_1`) in Brazilian Portuguese (`pt-BR`).
 - **Local-First Architecture**: Notes stored in SQLite with UUID v4 and automatically mirrored to daily Markdown files (`notes/YYYY-MM-DD.md`).
 - **Physical Fallbacks**: Global keyboard shortcut on Linux (`Super+Shift+N`), Default Assistant gesture on Android, and Action Button / Siri Shortcuts on iOS.
+- **Silent & Meeting Modes**: Fast toggling to suppress audio chimes and rely strictly on haptics and discreet notifications.
 
 ## Documentation
 
 - **Product Requirements Document (PRD)**: [`docs/prd/void-voice-notes.md`](docs/prd/void-voice-notes.md)
+- **Architecture Decision Records**: [`docs/adr/`](docs/adr/)
 - **Agent Rules & Invariants**: [`AGENTS.md`](AGENTS.md)
+- **Domain Context**: [`CONTEXT.md`](CONTEXT.md)
 
 ## Tech Stack
 

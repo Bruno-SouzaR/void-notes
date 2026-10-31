@@ -1,5 +1,5 @@
-name: void_app
-description: "V.O.I.D. — Multiplatform Voice Notes Assistant"
+name: void_notes
+description: "void-notes — Multiplatform Voice Notes Assistant"
 publish_to: 'none'
 version: 0.1.0+1
 

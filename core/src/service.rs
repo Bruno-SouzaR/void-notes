@@ -12,7 +12,7 @@ use crate::storage::MarkdownMirror;
 use crate::stt::{DirectiveFormatter, MockSpeechRecognizer, SpeechRecognizer};
 use crate::Result;
 
-/// High-level orchestration engine for the V.O.I.D. assistant.
+/// High-level orchestration engine for the void-notes service.
 pub struct VoidService {
     conn: Arc<Mutex<Connection>>,
     mirror: MarkdownMirror,

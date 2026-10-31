@@ -1,9 +1,9 @@
 [package]
-name = "void-core"
+name = "void-notes-core"
 version = "0.1.0"
 edition = "2021"
 authors = ["Bruno Souza <brunosouzar@users.noreply.github.com>"]
-description = "Core native engine for V.O.I.D. (VOID Only Interprets Directives)"
+description = "Core native engine for void-notes"
 license = "MIT"
 
 [dependencies]

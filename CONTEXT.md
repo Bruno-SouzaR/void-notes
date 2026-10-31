@@ -1,6 +1,6 @@
-# V.O.I.D. Domain Context
+# void-notes Domain Context
 
-The core domain model for V.O.I.D. (VOID Only Interprets Directives), defining the ubiquitous language governing voice capture, directive transcription, persistence, and feedback.
+The core domain model for `void-notes`, defining the ubiquitous language governing voice capture, directive transcription, persistence, and feedback.
 
 ## Language
 

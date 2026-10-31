@@ -1,17 +1,17 @@
 use std::fs;
 use tempfile::tempdir;
-use void_core::feedback::{FeedbackAction, FeedbackProfile};
-use void_core::kws::MockWakeWordDetector;
-use void_core::stt::MockSpeechRecognizer;
-use void_core::VoidService;
+use void_notes_core::feedback::{FeedbackAction, FeedbackProfile};
+use void_notes_core::kws::MockWakeWordDetector;
+use void_notes_core::stt::MockSpeechRecognizer;
+use void_notes_core::VoidService;
 
 fn main() -> anyhow::Result<()> {
     println!("============================================================");
-    println!("  V.O.I.D. — End-to-End Pipeline Smoke Test");
+    println!("  void-notes — End-to-End Pipeline Smoke Test");
     println!("============================================================");
 
     let temp_dir = tempdir()?;
-    let db_path = temp_dir.path().join("void.db");
+    let db_path = temp_dir.path().join("void_notes.db");
     let notes_dir = temp_dir.path().join("notes");
 
     println!("[1/6] Initializing VoidService...");

@@ -1,4 +1,4 @@
-/// Standard sample rate used across all V.O.I.D. audio subsystems.
+/// Standard sample rate used across all void-notes audio subsystems.
 pub const SAMPLE_RATE: u32 = 16_000;
 
 /// Fixed-capacity circular audio buffer for low-latency sliding window processing.

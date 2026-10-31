@@ -1,7 +1,6 @@
-//! V.O.I.D. Core Engine
+//! void-notes Core Engine
 //!
-//! VOID Only Interprets Directives: The minimal, high-efficiency native
-//! runtime for hands-free voice note-taking and directive execution.
+//! High-efficiency native runtime for hands-free voice note-taking and directive execution.
 
 pub mod audio;
 pub mod bridge;
@@ -15,7 +14,7 @@ pub mod stt;
 
 pub use service::VoidService;
 
-/// Core error types for the V.O.I.D. engine.
+/// Core error types for the void-notes engine.
 #[derive(thiserror::Error, Debug)]
 pub enum VoidError {
     #[error("Database error: {0}")]

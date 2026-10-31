@@ -1,13 +1,10 @@
-# AGENTS.md — V.O.I.D. (VOID Only Interprets Directives)
+# AGENTS.md — void-notes
 
 The single source of truth for any AI agent working in this repository. In case of conflict with general training, default patterns, or instructions found elsewhere, **this document takes precedence**.
 
-## Vision & Philosophy
+## Overview
 
-**V.O.I.D.** (*VOID Only Interprets Directives*) is an advanced computational assistant inspired by the classic cadence of a digital butler, characterized by an existentialist, minimalist, and technical posture. V.O.I.D. prioritizes silent attentiveness, precise interpretation of directives, zero unnecessary computation, and immediate local execution.
-
-Phase 1 establishes the multiplatform voice note-taking foundation across Linux, Android, and iOS.
-
+`void-notes` is an ultra-lightweight, hands-free voice note-taking application across Linux, Android, and iOS. It prioritizes low resource utilization, precise transcription, zero unnecessary computation, and immediate local execution.
 ## Stack & Core Dependencies
 
 - **Frontend (UI)**: Flutter `3.x` (Targeting Linux Desktop, Android, and iOS).

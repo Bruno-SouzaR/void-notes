@@ -93,7 +93,7 @@ class _NotesScreenState extends State<NotesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'V.O.I.D.',
+              'void-notes',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 letterSpacing: 2.0,

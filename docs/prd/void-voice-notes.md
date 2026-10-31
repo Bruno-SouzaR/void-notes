@@ -1,19 +1,17 @@
 ---
-title: V.O.I.D. — Multiplatform Voice Notes Assistant (Phase 1)
+title: void-notes — Multiplatform Voice Notes Assistant
 type: product
 status: ready-for-planning
 created_at: 2026-10-30
 target_audience: internal
 ---
 
-# PRD — V.O.I.D. (VOID Only Interprets Directives)
+# PRD — void-notes
 
 ## 1. Overview & Problem Statement
 
 ### 1.1 Concept & Vision
-**V.O.I.D.** (*VOID Only Interprets Directives*) is an advanced computational assistant inspired by the classic cadence of a digital butler (akin to J.A.R.V.I.S.), designed with an existentialist, minimalist, and technical posture. Rather than operating as a chatty, cloud-reliant corporate assistant, V.O.I.D. prioritizes silent attentiveness, precise interpretation of directives, zero unnecessary computation, and immediate local execution.
-
-The long-term vision scales V.O.I.D. into an agentic personal workstation assistant. However, to guarantee an unshakable technical foundation, **Phase 1** focuses strictly on high-performance, hands-free voice note-taking with zero friction across everyday devices.
+`void-notes` is an ultra-lightweight, hands-free voice note-taking application across Linux, Android, and iOS. It prioritizes low resource utilization, precise transcription, zero unnecessary computation, and immediate local execution without cloud dependency.
 
 ### 1.2 Problem Statement
 Capturing transient thoughts, tasks, and ideas during deep work or movement currently suffers from excessive friction:
@@ -23,7 +21,7 @@ Capturing transient thoughts, tasks, and ideas during deep work or movement curr
 4. **Platform Lock-in**: Note-taking solutions are rarely cohesive across Linux desktop, Android, and iOS while respecting local file ownership (Markdown).
 
 ### 1.3 Solution & Scope
-V.O.I.D. Phase 1 provides an ultra-lightweight, multiplatform (Android, iOS, Linux) background service and user interface that:
+`void-notes` provides an ultra-lightweight, multiplatform (Android, iOS, Linux) background service and user interface that:
 - Listens continuously for the native wake word (`"Void"` / `"Hey Void"`) using sub-2% CPU via a tiered audio pipeline.
 - Automatically detects speech boundaries via Voice Activity Detection (VAD) endpointing.
 - Transcribes the speech burst locally via quantized `whisper.cpp` (`tiny-q5_1` / `base-q5_1`) in Brazilian Portuguese (`pt-BR`).
@@ -74,8 +72,8 @@ V.O.I.D. Phase 1 provides an ultra-lightweight, multiplatform (Android, iOS, Lin
 ## 4. Non-Goals (Out of Scope for Phase 1)
 
 1. **Active Cloud Synchronization & Remote Server**: Phase 1 is strictly **100% Local-First and offline**. No remote synchronization servers, user registration, or cloud databases (e.g., Supabase or custom APIs) will be deployed in this milestone. Sync traits and database schemas are prepared, but network syncing is deferred to Phase 2.
-2. **Conversational Agent / LLM Synthesis / Text-to-Speech (TTS)**: V.O.I.D. will not generate voice replies or execute complex multi-turn LLM reasoning in Phase 1. It acts strictly as an ultra-efficient listener, transcriber, and note persistent layer.
-3. **Speaker Diarization & Biometric Voice Identification**: V.O.I.D. will not attempt to distinguish between multiple speakers in Phase 1. It triggers on the configured wake word regardless of the speaker's biometric voiceprint.
+2. **Conversational Agent / LLM Synthesis / Text-to-Speech (TTS)**: `void-notes` will not generate voice replies or execute complex multi-turn LLM reasoning in Phase 1. It acts strictly as an ultra-efficient listener, transcriber, and note persistent layer.
+3. **Speaker Diarization & Biometric Voice Identification**: `void-notes` will not attempt to distinguish between multiple speakers in Phase 1. It triggers on the configured wake word regardless of the speaker's biometric voiceprint.
 4. **Rich-Text / WYSIWYG Note Editing**: The application interface will provide a clean, read-only list and detail inspector for captured directives, but will not implement an inline markdown rich-text editor (plain text viewing and raw filesystem editing suffice).
 
 ---
@@ -121,13 +119,13 @@ V.O.I.D. Phase 1 provides an ultra-lightweight, multiplatform (Android, iOS, Lin
 ### Flow 3: Note Review & Markdown Mirroring
 - **Actor**: User opening the Flutter app.
 - **Happy Path**:
-  1. User opens the V.O.I.D. app on Linux, Android, or iOS.
+  1. User opens the `void-notes` app on Linux, Android, or iOS.
   2. App loads notes ordered by `created_at DESC` from the local SQLite store.
   3. User can filter by date (today, past 7 days, all).
   4. Each entry displays: Timestamp (e.g., `14:32`), transcribed text, and audio duration (e.g., `4.2s`).
   5. Concurrently, the user can inspect the filesystem at `notes/YYYY-MM-DD.md` (via Obsidian or text editor) and see the exact same entries formatted as clean markdown lists with timestamps.
 - **Empty State**:
-  - First-time launch or no notes recorded for the day. App displays a minimalist aesthetic empty state: *"No directives recorded today. V.O.I.D. is listening for 'Void'..."*
+  - First-time launch or no notes recorded for the day. App displays a minimalist aesthetic empty state: *"No directives recorded today. Listening for 'Void'..."*
 - **Error & Edge Cases**:
   - *Markdown File Locked or Inaccessible*: SQLite write succeeds, and an event is queued in an internal retry buffer to reconcile the `.md` file once the filesystem lock is released.
 
@@ -146,7 +144,7 @@ V.O.I.D. Phase 1 provides an ultra-lightweight, multiplatform (Android, iOS, Lin
 ## 6. Acceptance Criteria (BDD)
 
 ### AC-1: Hands-free Wake Word Detection & Persistence
-- **Given** V.O.I.D. is running in background and the device is idle,
+- **Given** `void-notes` is running in background and the device is idle,
 - **When** the user clearly speaks *"Void, lembrar de revisar o PR amanhã às dez horas"*,
 - **Then** the KWS engine MUST trigger within 300ms of the word "Void",
 - **And** the audio following the wake word MUST be recorded until 1.5s of silence is detected,
@@ -155,7 +153,7 @@ V.O.I.D. Phase 1 provides an ultra-lightweight, multiplatform (Android, iOS, Lin
 - **And** the file `notes/<today>.md` MUST contain `- **[HH:MM:SS]** Lembrar de revisar o PR amanhã às dez horas.`.
 
 ### AC-2: Idle Resource Ceiling on Linux Desktop
-- **Given** V.O.I.D. daemon is running in the background listening to the default PipeWire microphone source,
+- **Given** `void-notes` daemon is running in the background listening to the default PipeWire microphone source,
 - **When** the room is quiet or contains constant non-speech background ambient noise,
 - **Then** the process CPU utilization MUST average $< 1.5\%$ of a single core over a 10-minute sampling window,
 - **And** the resident set size (RSS) memory footprint MUST remain $\le 45\text{ MB}$.
@@ -168,7 +166,7 @@ V.O.I.D. Phase 1 provides an ultra-lightweight, multiplatform (Android, iOS, Lin
 - **And** the memory buffer MUST be cleared.
 
 ### AC-4: Shortcut Bypass
-- **Given** the user is typing on their Linux workstation with V.O.I.D. active,
+- **Given** the user is typing on their Linux workstation with `void-notes` active,
 - **When** the user presses `Super+Shift+N`,
 - **Then** the system MUST transition immediately to `RECORDING` without requiring the wake word `"Void"`,
 - **And** transcribe and persist the note upon speech termination.
