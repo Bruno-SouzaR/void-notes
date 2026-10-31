@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'bridge/void_bridge.dart';
 import 'platform/tray_hotkey.dart';
@@ -6,8 +7,15 @@ import 'screens/notes_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Instantiate bridge and hotkey controller
-  final bridge = MockVoidBridge();
+  final homeDir = Platform.environment['HOME'] ?? '/var/home/brunosouzar';
+  final projectRoot = Directory('$homeDir/projects/void-notes');
+  final notesDir = Directory('${projectRoot.path}/notes');
+
+  final bridge = LocalFileVoidBridge(
+    notesDirectory: notesDir,
+    projectRoot: projectRoot,
+  );
+
   final hotkeyService = TrayHotkeyService(bridge);
   await hotkeyService.initialize();
 

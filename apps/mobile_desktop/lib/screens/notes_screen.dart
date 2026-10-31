@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../bridge/void_bridge.dart';
 
-/// Main screen displaying the chronological feed of captured directives.
+/// Main screen displaying the chronological feed of captured directives and checklist cards.
 class NotesScreen extends StatefulWidget {
   final VoidBridge bridge;
 
@@ -17,24 +18,42 @@ class _NotesScreenState extends State<NotesScreen> {
   bool _isLoading = true;
   bool _silentMode = false;
   bool _isCapturing = false;
+  Timer? _autoRefreshTimer;
+  final Map<String, Set<int>> _checkedItems = {};
 
   @override
   void initState() {
     super.initState();
     _loadNotes();
+    // Auto-refresh every 3 seconds to reflect notes captured in background
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      _pollNotes();
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadNotes() async {
     setState(() => _isLoading = true);
-    try {
-      final notes = await widget.bridge.listTodayNotes();
-      setState(() {
-        _notes = notes;
-        _isLoading = false;
-      });
-    } catch (e) {
+    await _pollNotes();
+    if (mounted) {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _pollNotes() async {
+    try {
+      final notes = await widget.bridge.listTodayNotes();
+      if (mounted) {
+        setState(() {
+          _notes = notes;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _toggleSilentMode(bool value) async {
@@ -55,14 +74,20 @@ class _NotesScreenState extends State<NotesScreen> {
 
   Future<void> _triggerManualDirective() async {
     setState(() => _isCapturing = true);
-    await widget.bridge.triggerPriorityOverride();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Capturando diretiva por voz... Fale agora.'),
-        duration: const Duration(seconds: 3),
+        content: Text('🎙️ Gravando por 5s... Fale no seu microfone agora.'),
+        duration: const Duration(seconds: 5),
       ),
     );
+
+    await widget.bridge.triggerPriorityOverride();
+    await _pollNotes();
+
+    if (mounted) {
+      setState(() => _isCapturing = false);
+    }
   }
 
   Future<void> _revokeLatest() async {
@@ -77,6 +102,27 @@ class _NotesScreenState extends State<NotesScreen> {
         ),
       );
     }
+  }
+
+  bool _isChecklist(String content) {
+    final lower = content.toLowerCase();
+    return lower.contains('lista') ||
+        lower.contains('compras') ||
+        lower.contains('mercado') ||
+        content.contains('- [ ]') ||
+        content.contains('- [x]');
+  }
+
+  List<String> _extractItems(String content) {
+    if (content.contains('\n')) {
+      return content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    }
+    // If separated by commas or colons
+    if (content.contains(':')) {
+      final afterColon = content.split(':').sublist(1).join(':').trim();
+      return afterColon.split(',').map((i) => i.trim()).where((i) => i.isNotEmpty).toList();
+    }
+    return [content];
   }
 
   @override
@@ -182,7 +228,7 @@ class _NotesScreenState extends State<NotesScreen> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'Diga "Void" seguido da sua anotação.',
+                              'Diga "Void" seguido da sua anotação ou clique no botão abaixo.',
                               style: TextStyle(color: Colors.white24, fontSize: 12),
                             ),
                           ],
@@ -193,11 +239,17 @@ class _NotesScreenState extends State<NotesScreen> {
                         itemCount: _notes.length,
                         itemBuilder: (context, index) {
                           final note = _notes[index];
+                          final isList = _isChecklist(note.content);
+                          final checkedSet = _checkedItems.putIfAbsent(note.id, () => <int>{});
+                          final items = isList ? _extractItems(note.content) : <String>[];
+
                           return Card(
                             color: const Color(0xFF1A1D27),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
-                              side: const BorderSide(color: Color(0xFF262A38)),
+                              side: BorderSide(
+                                color: isList ? Colors.cyan.withOpacity(0.3) : const Color(0xFF262A38),
+                              ),
                             ),
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             child: Padding(
@@ -207,6 +259,23 @@ class _NotesScreenState extends State<NotesScreen> {
                                 children: [
                                   Row(
                                     children: [
+                                      if (isList)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.cyan.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            'LISTA DE COMPRAS',
+                                            style: TextStyle(
+                                              color: Colors.cyanAccent,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
                                       Text(
                                         timeFormat.format(note.createdAt),
                                         style: const TextStyle(
@@ -226,15 +295,60 @@ class _NotesScreenState extends State<NotesScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    note.content,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      height: 1.4,
+                                  const SizedBox(height: 8),
+                                  if (isList && items.length > 1)
+                                    Column(
+                                      children: List.generate(items.length, (itemIdx) {
+                                        final isChecked = checkedSet.contains(itemIdx);
+                                        return InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              if (isChecked) {
+                                                checkedSet.remove(itemIdx);
+                                              } else {
+                                                checkedSet.add(itemIdx);
+                                              }
+                                            });
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 2),
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  isChecked
+                                                      ? Icons.check_box
+                                                      : Icons.check_box_outline_blank,
+                                                  size: 18,
+                                                  color: isChecked ? Colors.cyanAccent : Colors.white38,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    items[itemIdx],
+                                                    style: TextStyle(
+                                                      color: isChecked ? Colors.white38 : Colors.white,
+                                                      fontSize: 13,
+                                                      decoration: isChecked
+                                                          ? TextDecoration.lineThrough
+                                                          : null,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    )
+                                  else
+                                    Text(
+                                      note.content,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        height: 1.4,
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),

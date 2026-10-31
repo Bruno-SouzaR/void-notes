@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 /// Dart representation of a DirectiveNote from the Rust core.
 class DirectiveNote {
@@ -66,10 +67,13 @@ abstract class VoidBridge {
   Future<void> setSilentMode(bool enabled);
 }
 
-/// Local in-memory bridge mock used for widget tests and standalone UI development.
-class MockVoidBridge implements VoidBridge {
-  final List<DirectiveNote> _notes = [];
+/// Bridge reading directly from the Local-First Markdown daily mirror and triggering recordings.
+class LocalFileVoidBridge implements VoidBridge {
+  final Directory notesDirectory;
+  final Directory projectRoot;
   bool _silent = false;
+
+  LocalFileVoidBridge({required this.notesDirectory, required this.projectRoot});
 
   @override
   Future<void> initEngine({
@@ -82,6 +86,12 @@ class MockVoidBridge implements VoidBridge {
 
   @override
   Future<List<String>> triggerPriorityOverride() async {
+    try {
+      final scriptPath = '${projectRoot.path}/record_test.sh';
+      if (await File(scriptPath).exists()) {
+        await Process.run(scriptPath, ['5', 'base'], workingDirectory: projectRoot.path);
+      }
+    } catch (_) {}
     return ['TriggerHaptic(LightTap)'];
   }
 
@@ -90,23 +100,77 @@ class MockVoidBridge implements VoidBridge {
 
   @override
   Future<List<DirectiveNote>> listTodayNotes() async {
-    return List.unmodifiable(_notes);
+    final now = DateTime.now();
+    final todayStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final file = File('${notesDirectory.path}/$todayStr.md');
+
+    if (!await file.exists()) {
+      return [];
+    }
+
+    final lines = await file.readAsLines();
+    final List<DirectiveNote> notes = [];
+
+    // Parse lines formatted as: - **[HH:MM:SS]** content
+    final regex = RegExp(r'^- \*\*\[(\d{2}:\d{2}:\d{2})\]\*\* (.+)$');
+
+    for (var i = lines.length - 1; i >= 0; i--) {
+      final line = lines[i].trim();
+      final match = regex.firstMatch(line);
+      if (match != null) {
+        final timeStr = match.group(1)!;
+        final content = match.group(2)!;
+        final timeParts = timeStr.split(':');
+        final createdAt = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(timeParts[0]),
+          int.parse(timeParts[1]),
+          int.parse(timeParts[2]),
+        );
+
+        notes.add(DirectiveNote(
+          id: 'note_$i',
+          content: content,
+          rawTranscription: content,
+          audioDurationMs: 4000,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+          syncStatus: 'pending',
+        ));
+      }
+    }
+
+    return notes;
   }
 
   @override
   Future<DirectiveNote?> revokeLatestDirective() async {
-    if (_notes.isNotEmpty) {
-      return _notes.removeLast();
+    final notes = await listTodayNotes();
+    if (notes.isEmpty) return null;
+    final latest = notes.first;
+
+    final now = DateTime.now();
+    final todayStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final file = File('${notesDirectory.path}/$todayStr.md');
+
+    if (await file.exists()) {
+      final lines = await file.readAsLines();
+      for (var i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].trim().startsWith('- **[')) {
+          lines.removeAt(i);
+          break;
+        }
+      }
+      await file.writeAsString(lines.join('\n'));
     }
-    return null;
+
+    return latest;
   }
 
   @override
   Future<void> setSilentMode(bool enabled) async {
     _silent = enabled;
-  }
-
-  void addMockNote(DirectiveNote note) {
-    _notes.insert(0, note);
   }
 }
