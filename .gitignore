@@ -10,6 +10,9 @@ build/
 *.aab
 *.app
 *.ipa
+__pycache__/
+*.pyc
+dataset/
 
 # Models & Weights (downloaded on demand or via install scripts)
 models/**/*.bin
