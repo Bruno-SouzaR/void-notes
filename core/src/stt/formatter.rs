@@ -59,14 +59,12 @@ impl DirectiveFormatter {
 
         // Capitalize the first Unicode character
         let mut chars = cleaned.chars();
-        let mut formatted = match chars.next() {
-            Some(first) => first.to_uppercase().collect::<String>(),
-            None => return None,
-        };
+        let first = chars.next()?;
+        let mut formatted = first.to_uppercase().collect::<String>();
         formatted.push_str(chars.as_str());
 
         // Ensure closing punctuation
-        if !formatted.ends_with(|c: char| c == '.' || c == '!' || c == '?') {
+        if !formatted.ends_with(['.', '!', '?']) {
             formatted.push('.');
         }
 
