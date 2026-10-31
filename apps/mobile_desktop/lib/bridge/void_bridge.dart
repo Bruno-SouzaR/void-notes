@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 /// Dart representation of a DirectiveNote from the Rust core.
 class DirectiveNote {
@@ -88,10 +89,29 @@ class LocalFileVoidBridge implements VoidBridge {
   Future<List<String>> triggerPriorityOverride() async {
     try {
       final scriptPath = '${projectRoot.path}/record_test.sh';
-      if (await File(scriptPath).exists()) {
-        await Process.run(scriptPath, ['5', 'base'], workingDirectory: projectRoot.path);
+      final scriptFile = File(scriptPath);
+      if (await scriptFile.exists()) {
+        final result = await Process.run(
+          scriptPath,
+          ['5', 'base'],
+          workingDirectory: projectRoot.path,
+          environment: {
+            'PATH': '/usr/bin:/usr/local/bin:${Platform.environment['PATH'] ?? ''}',
+          },
+        );
+        debugPrint('[void-notes] record_test.sh exitCode: ${result.exitCode}');
+        if (result.stdout.toString().isNotEmpty) {
+          debugPrint('[void-notes] record_test.sh stdout: ${result.stdout}');
+        }
+        if (result.stderr.toString().isNotEmpty) {
+          debugPrint('[void-notes] record_test.sh stderr: ${result.stderr}');
+        }
+      } else {
+        debugPrint('[void-notes] Script not found at: $scriptPath');
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[void-notes] Error executing triggerPriorityOverride: $e');
+    }
     return ['TriggerHaptic(LightTap)'];
   }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
+export PATH="/usr/bin:/usr/local/bin:$PATH"
 DURATION="${1:-5}"
 MODEL_CHOICE="${2:-base}"
 TEMP_WAV="/tmp/void_test_input.wav"
@@ -59,6 +59,20 @@ if [ -n "$CLEAN_TEXT" ]; then
     echo "    - Modelo Usado:        ${MODEL_CHOICE}"
     echo "    - Tempo de Gravação:   ${DURATION}s"
     echo "    - Tempo de Inferência: ${ELAPSED_MS}ms"
+
+    TODAY=$(date +%Y-%m-%d)
+    NOW=$(date +%H:%M:%S)
+    mkdir -p "notes"
+    NOTE_FILE="notes/${TODAY}.md"
+
+    if [ ! -f "$NOTE_FILE" ]; then
+        echo "# ${TODAY}" > "$NOTE_FILE"
+        echo "" >> "$NOTE_FILE"
+    fi
+
+    echo "- **[${NOW}]** ${CLEAN_TEXT}" >> "$NOTE_FILE"
+    echo ""
+    echo "  ✓ Nota espelhada com sucesso em ${NOTE_FILE}"
 else
     echo "  Texto Transcrito Bruto:"
     echo "    \"$RAW_OUTPUT\""

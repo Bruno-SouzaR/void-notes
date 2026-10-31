@@ -77,16 +77,35 @@ class _NotesScreenState extends State<NotesScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('🎙️ Gravando por 5s... Fale no seu microfone agora.'),
-        duration: const Duration(seconds: 5),
+        content: Text('🎙️ Gravando por 5s... Fale no microfone agora.'),
+        duration: Duration(seconds: 5),
       ),
     );
 
+    final countBefore = _notes.length;
     await widget.bridge.triggerPriorityOverride();
     await _pollNotes();
 
     if (mounted) {
       setState(() => _isCapturing = false);
+      final countAfter = _notes.length;
+      if (countAfter > countBefore) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Nota capturada: "${_notes.first.content}"'),
+            backgroundColor: Colors.teal.shade800,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ Nenhuma fala audível detectada. Tente falar mais perto do microfone.'),
+            backgroundColor: Colors.deepOrange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
