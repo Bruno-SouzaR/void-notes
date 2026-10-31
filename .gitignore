@@ -1,5 +1,6 @@
 # Generated / Build outputs
 target/
+bin/
 build/
 .dart_tool/
 .flutter-plugins
