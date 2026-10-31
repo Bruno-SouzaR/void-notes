@@ -41,7 +41,7 @@ def flush_pipe(pipe):
         fcntl.fcntl(fd, fcntl.F_SETFL, fl)
 
 def render_meter(rms, is_speech, silence_ms, duration_s):
-    bars = int(min(1.0, rms * 35.0) * 12)
+    bars = int(min(1.0, rms * 30.0) * 12)
     bar_str = "█" * bars + "░" * (12 - bars)
     state_str = "FALA" if is_speech else f"Silêncio {silence_ms}ms/1500ms"
     return f"\r  🎙️ [{bar_str}] {duration_s:4.1f}s | {state_str:<24}"
@@ -58,12 +58,12 @@ def main():
     keywords = os.path.join(model_dir, "keywords.txt")
 
     print("============================================================")
-    print("  void-notes — Listener Contínuo (VAD Dinâmico + Live Meter)")
+    print("  void-notes — Listener Contínuo (PipeWire RAW Mode)")
     print("============================================================")
     print("  Palavras de ativação: 'Hey Void', 'Ei Void', 'Ok Void', 'Void'")
-    print("  Entrada de áudio:     pw-record (PipeWire nativo)")
+    print("  Entrada de áudio:     pw-record --raw (PCM puro sem container)")
     print("  Transcrição:          Whisper small-q5_1 (2 threads + áudio dinâmico)")
-    print("  Aguardando chamada... Fale 'Hey Void' ou 'Ei Void' no microfone.")
+    print("  Aguardando chamada... Diga 'Hey Void' ou 'Void' no microfone.")
     print("============================================================\n")
 
     kws = sherpa_onnx.KeywordSpotter(
@@ -72,23 +72,24 @@ def main():
         decoder=decoder,
         joiner=joiner,
         keywords_file=keywords,
-        keywords_threshold=0.20,
-        keywords_score=2.2,
+        keywords_threshold=0.15,
+        keywords_score=2.5,
         num_threads=2,
     )
 
+    # Spawn continuous 16kHz s16le PCM stream from PipeWire in RAW mode
     pw_proc = subprocess.Popen(
-        ["pw-record", "--rate", "16000", "--channels", "1", "--format", "s16", "-"],
+        ["pw-record", "--raw", "--rate", "16000", "--channels", "1", "--format", "s16", "-"],
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         bufsize=0,
     )
 
-    # 50ms chunks = 800 samples = 1600 bytes
-    chunk_samples_count = 800
+    # 100ms chunks = 1600 samples = 3200 bytes (optimal for Zipformer subsampling)
+    chunk_samples_count = 1600
     chunk_bytes = chunk_samples_count * 2
 
-    noise_floor = 0.006
+    noise_floor = 0.005
     stream = kws.create_stream()
 
     try:
@@ -101,11 +102,17 @@ def main():
             i16_arr = array.array('h', raw)
             f32_chunk = [x / 32768.0 for x in i16_arr]
 
-            # Adaptive noise floor tracking
             chunk_rms = calc_rms(f32_chunk)
             if chunk_rms < noise_floor * 1.5:
                 noise_floor = (0.05 * chunk_rms) + (0.95 * noise_floor)
                 noise_floor = max(0.003, noise_floor)
+
+            # Live passive volume indicator when sound is present
+            if chunk_rms > 0.008:
+                bars = int(min(1.0, chunk_rms * 30.0) * 10)
+                bar_str = "█" * bars + "░" * (10 - bars)
+                sys.stdout.write(f"\r  [●] Ouvindo: [{bar_str}] RMS: {chunk_rms:.4f}  ")
+                sys.stdout.flush()
 
             stream.accept_waveform(16000, f32_chunk)
 
@@ -114,17 +121,17 @@ def main():
                 result = kws.get_result(stream)
                 if result:
                     now_str = time.strftime("%H:%M:%S")
-                    print(f"\n⚡ [{now_str}] WakeWord Detectado: '{result}'!", flush=True)
+                    print(f"\n\n⚡ [{now_str}] WakeWord Detectado: '{result}'!", flush=True)
 
                     # 1. Play wake chime immediately in foreground
                     subprocess.run(["pw-play", "sounds/chime_wake.wav"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    subprocess.Popen(["notify-send", "-t", "2000", "V.O.I.D. — Ouvindo", "Fale sua anotação..."], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    subprocess.Popen(["notify-send", "-t", "2000", "V.O.I.D. — Ouvindo", "Diga sua anotação..."], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
                     # Flush the pipe so the recorded directive does not contain the chime
                     flush_pipe(pw_proc.stdout)
 
                     # 2. Dynamic Recording Loop
-                    print("  Ouvindo... (fale no seu ritmo normal, corte automático no silêncio):", flush=True)
+                    print("  🎙️ Gravando... (fale no seu ritmo normal, corte automático no silêncio):", flush=True)
                     directive_samples = []
                     speech_detected = False
                     silence_duration_ms = 0
@@ -132,9 +139,12 @@ def main():
 
                     speech_threshold = max(0.008, noise_floor * 1.8)
 
+                    # Smaller 50ms chunks during directive capture for responsive VAD
+                    rec_chunk_bytes = 1600
+
                     while True:
-                        rec_raw = pw_proc.stdout.read(chunk_bytes)
-                        if not rec_raw or len(rec_raw) < chunk_bytes:
+                        rec_raw = pw_proc.stdout.read(rec_chunk_bytes)
+                        if not rec_raw or len(rec_raw) < rec_chunk_bytes:
                             time.sleep(0.01)
                             continue
 
@@ -237,7 +247,7 @@ def main():
 
                     # Re-create fresh stream to guarantee zero lingering token activations
                     stream = kws.create_stream()
-                    print("\nPronto! Aguardando próxima chamada ('Hey Void', 'Ei Void')...\n", flush=True)
+                    print("\nPronto! Aguardando próxima chamada ('Hey Void', 'Ei Void', 'Void')...\n", flush=True)
 
     except KeyboardInterrupt:
         print("\nEncerrando listener...", flush=True)

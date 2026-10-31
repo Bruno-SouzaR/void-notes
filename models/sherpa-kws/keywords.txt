@@ -1,5 +1,7 @@
-▁HE Y ▁ VO ID :2.5 #0.20
-▁E I ▁ VO ID :2.5 #0.20
-▁O K ▁ VO ID :2.5 #0.20
-▁OKAY ▁ VO ID :2.5 #0.20
-▁ VO ID :2.0 #0.20
+▁HE Y ▁ VO ID :2.5 #0.15
+▁E I ▁ VO ID :2.5 #0.15
+▁O K ▁ VO ID :2.5 #0.15
+▁ VO ID :3.0 #0.10
+VO ID :3.0 #0.10
+▁ VO ID I :3.0 #0.10
+▁ VO ID E :3.0 #0.10
