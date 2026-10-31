@@ -72,8 +72,9 @@ def main():
         decoder=decoder,
         joiner=joiner,
         keywords_file=keywords,
-        keywords_threshold=0.15,
-        keywords_score=2.5,
+        max_active_paths=8,
+        keywords_threshold=0.07,
+        keywords_score=3.8,
         num_threads=2,
     )
 
@@ -100,7 +101,7 @@ def main():
                 continue
 
             i16_arr = array.array('h', raw)
-            f32_chunk = [x / 32768.0 for x in i16_arr]
+            f32_chunk = [min(1.0, max(-1.0, (x / 32768.0) * 1.3)) for x in i16_arr]
 
             chunk_rms = calc_rms(f32_chunk)
             if chunk_rms < noise_floor * 1.5:
@@ -149,7 +150,7 @@ def main():
                             continue
 
                         rec_i16 = array.array('h', rec_raw)
-                        rec_f32 = [x / 32768.0 for x in rec_i16]
+                        rec_f32 = [min(1.0, max(-1.0, (x / 32768.0) * 1.3)) for x in rec_i16]
                         directive_samples.extend(rec_f32)
 
                         total_duration_ms += 50
