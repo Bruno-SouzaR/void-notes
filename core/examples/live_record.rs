@@ -53,11 +53,15 @@ fn main() -> anyhow::Result<()> {
     println!("  void-notes — Live Microphone Accuracy & Precision Test");
     println!("============================================================");
 
+    let use_small = std::env::args().any(|a| a == "--small" || a == "small");
+    let model_path = if use_small {
+        PathBuf::from("models/ggml-small-q5_1.bin")
+    } else {
+        PathBuf::from("models/ggml-base-q5_1.bin")
+    };
     let binary_path = PathBuf::from("bin/whisper-cli");
-    let model_path = PathBuf::from("models/ggml-base-q5_1.bin");
     let db_path = PathBuf::from("data/live_test.db");
     let notes_dir = PathBuf::from("notes");
-
     std::fs::create_dir_all("data")?;
     std::fs::create_dir_all(&notes_dir)?;
 
@@ -78,8 +82,8 @@ fn main() -> anyhow::Result<()> {
     let conn = rusqlite::Connection::open(&db_path)?;
     let recognizer = WhisperCliRecognizer::new(&binary_path, &model_path)
         .with_language("pt")
-        .with_threads(2);
-
+        .with_threads(2)
+        .with_initial_prompt("Anotações em português brasileiro, fala natural e contínua.");
     // KWS armed to accept the live phrase
     let mut kws = MockWakeWordDetector::new(Default::default());
     kws.arm_trigger();

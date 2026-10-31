@@ -15,6 +15,8 @@ pub struct WhisperConfig {
     pub threads: usize,
     /// Translate to English if true, or keep original language transcription.
     pub translate: bool,
+    /// Optional prompt conditioning to guide the decoder on language and domain.
+    pub initial_prompt: Option<String>,
 }
 
 impl Default for WhisperConfig {
@@ -24,6 +26,7 @@ impl Default for WhisperConfig {
             language: "pt".to_string(),
             threads: 2, // Clamped per ADR 0001 & Grilling consensus
             translate: false,
+            initial_prompt: Some("Anotações em português brasileiro, fala natural e contínua.".to_string()),
         }
     }
 }
@@ -41,6 +44,7 @@ pub struct WhisperCliRecognizer {
     model_path: PathBuf,
     language: String,
     threads: usize,
+    initial_prompt: Option<String>,
 }
 
 impl WhisperCliRecognizer {
@@ -51,7 +55,20 @@ impl WhisperCliRecognizer {
             model_path: model_path.into(),
             language: "pt".to_string(),
             threads: 2,
+            initial_prompt: Some("Anotações em português brasileiro, fala natural e contínua.".to_string()),
         }
+    }
+
+    /// Configures the model path dynamically (e.g. switching between base-q5_1 and small-q5_1).
+    pub fn with_model(mut self, model_path: impl Into<PathBuf>) -> Self {
+        self.model_path = model_path.into();
+        self
+    }
+
+    /// Sets the optional prompt conditioning for conversational speech guidance.
+    pub fn with_initial_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.initial_prompt = Some(prompt.into());
+        self
     }
 
     /// Sets the number of worker threads (clamped between 1 and 4).
@@ -113,17 +130,21 @@ impl SpeechRecognizer for WhisperCliRecognizer {
 
         Self::write_temp_wav(&temp_wav_path, audio_samples)?;
 
-        let output_res = Command::new(&self.binary_path)
-            .arg("-m")
+        let mut cmd = Command::new(&self.binary_path);
+        cmd.arg("-m")
             .arg(&self.model_path)
             .arg("-l")
             .arg(&self.language)
             .arg("-t")
             .arg(self.threads.to_string())
-            .arg("-nt")
-            .arg("-f")
-            .arg(&temp_wav_path)
-            .output();
+            .arg("-nt");
+
+        if let Some(ref prompt) = self.initial_prompt {
+            cmd.arg("--prompt").arg(prompt);
+        }
+
+        cmd.arg("-f").arg(&temp_wav_path);
+        let output_res = cmd.output();
 
         // Clean up temporary WAV file immediately
         let _ = fs::remove_file(&temp_wav_path);
