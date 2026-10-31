@@ -19,6 +19,8 @@ models/**/*.bin
 models/**/*.onnx
 models/**/*.tflite
 models/**/*.model
+models/**/*.data
+*.onnx.data
 models/*.bin
 models/*.onnx
 models/*.tflite

@@ -10,8 +10,10 @@ import numpy as np
 import openwakeword
 
 def calc_rms(samples):
-    if not samples:
+    if len(samples) == 0:
         return 0.0
+    if isinstance(samples, np.ndarray):
+        return float(np.sqrt(np.mean(samples ** 2)))
     return math.sqrt(sum(s * s for s in samples) / len(samples))
 
 def write_wav(filename, samples, sample_rate=16000):
@@ -67,8 +69,7 @@ def main():
     print("============================================================\n")
 
     oww_model = openwakeword.Model(
-        wakeword_models=[model_path],
-        inference_framework="onnx",
+        wakeword_model_paths=[model_path],
     )
 
     pw_proc = subprocess.Popen(
