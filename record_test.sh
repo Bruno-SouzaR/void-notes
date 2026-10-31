@@ -38,8 +38,15 @@ wait "$PID" 2>/dev/null || true
 echo "✓ Gravação concluída. Transcrevendo áudio com whisper.cpp..."
 echo ""
 
+AUDIO_MS=$(( DURATION * 1000 ))
+RAW_FRAMES=$(( (AUDIO_MS + 19) / 20 ))
+WITH_HEADROOM=$(( RAW_FRAMES + 64 ))
+AUDIO_CTX=$(( ((WITH_HEADROOM + 63) / 64) * 64 ))
+if [ "$AUDIO_CTX" -lt 128 ]; then AUDIO_CTX=128; fi
+if [ "$AUDIO_CTX" -gt 1500 ]; then AUDIO_CTX=1500; fi
+
 START_TIME=$(date +%s%N)
-RAW_OUTPUT=$(./bin/whisper-cli -m "$MODEL_PATH" -l pt -t 2 -nt --prompt "$PROMPT" "$TEMP_WAV" 2>/dev/null)
+RAW_OUTPUT=$(./bin/whisper-cli -m "$MODEL_PATH" -l pt -t 2 -nt -ac "$AUDIO_CTX" --prompt "$PROMPT" "$TEMP_WAV" 2>/dev/null)
 END_TIME=$(date +%s%N)
 ELAPSED_MS=$(( (END_TIME - START_TIME) / 1000000 ))
 

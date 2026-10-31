@@ -30,6 +30,17 @@ impl Default for WhisperConfig {
         }
     }
 }
+/// Calculates the optimal Whisper audio context size for a given sample count.
+///
+/// Minimizes transformer encoder matrix multiplication by encoding only the
+/// necessary acoustic frames rather than padding to 30.0 seconds.
+pub fn calculate_dynamic_audio_ctx(sample_count: usize) -> usize {
+    let duration_ms = (sample_count as f64 / 16.0) as usize; // 16 samples per ms at 16kHz
+    let raw_frames = duration_ms.div_ceil(20); // 20ms per encoder frame
+    let with_headroom = raw_frames + 64; // 1.28s acoustic margin
+    let aligned = with_headroom.div_ceil(64) * 64;
+    aligned.clamp(128, 1500)
+}
 
 /// Abstract contract for speech-to-text recognition implementations.
 pub trait SpeechRecognizer: Send + Sync {
@@ -131,12 +142,15 @@ impl SpeechRecognizer for WhisperCliRecognizer {
         Self::write_temp_wav(&temp_wav_path, audio_samples)?;
 
         let mut cmd = Command::new(&self.binary_path);
+        let audio_ctx = calculate_dynamic_audio_ctx(audio_samples.len());
         cmd.arg("-m")
             .arg(&self.model_path)
             .arg("-l")
             .arg(&self.language)
             .arg("-t")
             .arg(self.threads.to_string())
+            .arg("-ac")
+            .arg(audio_ctx.to_string())
             .arg("-nt");
 
         if let Some(ref prompt) = self.initial_prompt {
@@ -232,5 +246,19 @@ mod tests {
         let recognizer = MockSpeechRecognizer::new();
         let result = recognizer.transcribe(&[]).expect("empty transcription failed");
         assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_calculate_dynamic_audio_ctx_boundaries() {
+        // 1.0 second (16,000 samples) -> clamped to minimum 128 frames
+        assert_eq!(calculate_dynamic_audio_ctx(16_000), 128);
+        // 3.0 seconds (48,000 samples) -> 150 frames + 64 = 214 -> 256 frames
+        assert_eq!(calculate_dynamic_audio_ctx(48_000), 256);
+        // 5.0 seconds (80,000 samples) -> 250 frames + 64 = 314 -> 320 frames
+        assert_eq!(calculate_dynamic_audio_ctx(80_000), 320);
+        // 8.0 seconds (128,000 samples) -> 400 frames + 64 = 464 -> 512 frames
+        assert_eq!(calculate_dynamic_audio_ctx(128_000), 512);
+        // Long audio (> 30s) -> clamped to maximum 1500 frames
+        assert_eq!(calculate_dynamic_audio_ctx(600_000), 1500);
     }
 }

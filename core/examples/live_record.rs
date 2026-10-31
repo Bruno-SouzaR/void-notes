@@ -40,7 +40,7 @@ fn read_wav_as_f32(path: &PathBuf) -> anyhow::Result<Vec<f32>> {
     let pcm_bytes = &buffer[44..];
     let mut samples = Vec::with_capacity(pcm_bytes.len() / 2);
 
-    for chunk in pcm_bytes.chunks_exact(2) {
+    for chunk in pcm_bytes.as_chunks::<2>().0 {
         let sample_i16 = i16::from_le_bytes([chunk[0], chunk[1]]);
         samples.push(sample_i16 as f32 / 32768.0);
     }
