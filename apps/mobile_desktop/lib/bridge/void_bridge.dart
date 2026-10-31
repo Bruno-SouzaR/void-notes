@@ -66,6 +66,10 @@ abstract class VoidBridge {
   Future<DirectiveNote?> revokeLatestDirective();
 
   Future<void> setSilentMode(bool enabled);
+
+  void setSelectedModel(String model);
+
+  String get selectedModel;
 }
 
 /// Bridge reading directly from the Local-First Markdown daily mirror and triggering recordings.
@@ -73,8 +77,17 @@ class LocalFileVoidBridge implements VoidBridge {
   final Directory notesDirectory;
   final Directory projectRoot;
   bool _silent = false;
+  String _selectedModel = 'base';
 
   LocalFileVoidBridge({required this.notesDirectory, required this.projectRoot});
+
+  @override
+  void setSelectedModel(String model) {
+    _selectedModel = model;
+  }
+
+  @override
+  String get selectedModel => _selectedModel;
 
   @override
   Future<void> initEngine({
@@ -93,7 +106,7 @@ class LocalFileVoidBridge implements VoidBridge {
       if (await scriptFile.exists()) {
         final result = await Process.run(
           scriptPath,
-          ['5', 'base'],
+          ['5', _selectedModel],
           workingDirectory: projectRoot.path,
           environment: {
             'PATH': '/usr/bin:/usr/local/bin:${Platform.environment['PATH'] ?? ''}',

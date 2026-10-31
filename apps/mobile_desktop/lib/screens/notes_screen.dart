@@ -18,12 +18,14 @@ class _NotesScreenState extends State<NotesScreen> {
   bool _isLoading = true;
   bool _silentMode = false;
   bool _isCapturing = false;
+  String _selectedModel = 'base';
   Timer? _autoRefreshTimer;
   final Map<String, Set<int>> _checkedItems = {};
 
   @override
   void initState() {
     super.initState();
+    _selectedModel = widget.bridge.selectedModel;
     _loadNotes();
     // Auto-refresh every 3 seconds to reflect notes captured in background
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -173,6 +175,49 @@ class _NotesScreenState extends State<NotesScreen> {
           ],
         ),
         actions: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E2230),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF262A38)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedModel,
+                dropdownColor: const Color(0xFF1A1D27),
+                style: const TextStyle(fontSize: 12, color: Colors.cyanAccent),
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.cyanAccent, size: 18),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'base',
+                    child: Text('Base (57 MB)'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'small',
+                    child: Text('Small (181 MB)'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedModel = val);
+                    widget.bridge.setSelectedModel(val);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          val == 'small'
+                              ? 'Modelo Small ativado (Alta precisão para fala rápida)'
+                              : 'Modelo Base ativado (Ultra-leve)',
+                        ),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
           Row(
             children: [
               Icon(
