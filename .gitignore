@@ -12,6 +12,10 @@ build/
 *.ipa
 
 # Models & Weights (downloaded on demand or via install scripts)
+models/**/*.bin
+models/**/*.onnx
+models/**/*.tflite
+models/**/*.model
 models/*.bin
 models/*.onnx
 models/*.tflite
