@@ -10,7 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
 
-  final homeDir = Platform.environment['HOME'] ?? '/var/home/brunosouzar';
+  final homeDir = Platform.environment['HOME'] ?? Directory.current.path;
   final projectRoot = Directory('$homeDir/projects/void-notes');
   final notesDir = Directory('${projectRoot.path}/notes');
 
