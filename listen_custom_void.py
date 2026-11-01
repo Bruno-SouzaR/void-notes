@@ -45,6 +45,19 @@ def flush_pipe(pipe):
     finally:
         fcntl.fcntl(fd, fcntl.F_SETFL, fl)
 
+def is_repeating_hallucination(text):
+    """Detects repetitive Whisper silence hallucinations (e.g. 'O que é isso? O que é isso?')."""
+    lower = text.lower().strip()
+    # Check question marks repetition
+    parts = [p.strip() for p in lower.split('?') if len(p.strip()) >= 3]
+    if len(parts) >= 2 and len(set(parts)) == 1:
+        return True
+    # Check comma repetition
+    parts_comma = [p.strip() for p in lower.split(',') if len(p.strip()) >= 3]
+    if len(parts_comma) >= 3 and len(set(parts_comma)) == 1:
+        return True
+    return False
+
 def render_meter(rms, is_speech, silence_ms, duration_s):
     bars = int(min(1.0, rms * 30.0) * 12)
     bar_str = "█" * bars + "░" * (12 - bars)
@@ -81,10 +94,11 @@ def main():
         bufsize=0,
     )
 
-    # 80ms chunks = 1280 samples = 2560 bytes (openWakeWord standard)
+    # 80ms chunks = 1280 samples = 2560 bytes
     chunk_samples = 1280
     chunk_bytes = chunk_samples * 2
     noise_floor = 0.005
+    cooldown_until = 0.0
 
     try:
         while True:
@@ -101,21 +115,26 @@ def main():
                 noise_floor = (0.05 * chunk_rms) + (0.95 * noise_floor)
                 noise_floor = max(0.003, noise_floor)
 
+            now_time = time.time()
+            is_cooldown = now_time < cooldown_until
+
             # Predict with custom model
             predictions = oww_model.predict(i16_arr)
             prob = predictions.get("void_custom", 0.0)
 
-            # Live passive meter (always visible so user sees mic status and confidence)
+            # Live passive meter
             bars = int(min(1.0, chunk_rms * 30.0) * 10)
             bar_str = "█" * bars + "░" * (10 - bars)
-            sys.stdout.write(f"\r  [●] Ouvindo: [{bar_str}] RMS: {chunk_rms:.4f} | 'VOID': {prob*100:5.1f}%  ")
+            status_tag = "COOLDOWN" if is_cooldown else f"'VOID': {prob*100:5.1f}%"
+            sys.stdout.write(f"\r  [●] Ouvindo: [{bar_str}] RMS: {chunk_rms:.4f} | {status_tag}  ")
             sys.stdout.flush()
 
-            if prob >= 0.40:
+            # Trigger only if above 0.55 and outside cooldown window
+            if prob >= 0.55 and not is_cooldown:
                 now_str = time.strftime("%H:%M:%S")
                 print(f"\n\n⚡ [{now_str}] WakeWord 'VOID' Detectado (Confiança: {prob*100:.1f}%)!", flush=True)
 
-                # 1. Play wake chime immediately
+                # 1. Play wake chime immediately in foreground
                 subprocess.run(["pw-play", "sounds/chime_wake.wav"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.Popen(["notify-send", "-t", "2000", "V.O.I.D. — Ouvindo", "Diga sua anotação..."], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -125,6 +144,7 @@ def main():
                 print("  🎙️ Gravando... (fale no seu ritmo normal, corte automático no silêncio):", flush=True)
                 directive_samples = []
                 speech_detected = False
+                speech_frames_count = 0
                 silence_duration_ms = 0
                 total_duration_ms = 0
 
@@ -145,21 +165,26 @@ def main():
                     rms = calc_rms(rec_f32)
 
                     if rms >= speech_threshold:
-                        speech_detected = True
+                        speech_frames_count += 1
                         silence_duration_ms = 0
+                        # Require at least 6 speech frames (300ms) to confirm genuine human speech
+                        if speech_frames_count >= 6:
+                            speech_detected = True
                     else:
                         silence_duration_ms += 50
 
                     sys.stdout.write(render_meter(rms, rms >= speech_threshold, silence_duration_ms, total_duration_ms / 1000.0))
                     sys.stdout.flush()
 
+                    # Dynamic endpoint: speech confirmed + silence >= 1500ms
                     if speech_detected and silence_duration_ms >= 1500:
                         sys.stdout.write(f"\n  ✓ Fim da fala detectado ({total_duration_ms/1000.0:.1}s gravados)\n")
                         sys.stdout.flush()
                         break
 
+                    # Anti-ghost: no sustained speech within 4.0s
                     if not speech_detected and silence_duration_ms >= 4000:
-                        sys.stdout.write("\n  ⚠️ Nenhuma fala detectada após ativação (sessão cancelada).\n")
+                        sys.stdout.write("\n  ⚠️ Nenhuma fala audível detectada (sessão cancelada).\n")
                         sys.stdout.flush()
                         break
 
@@ -168,7 +193,7 @@ def main():
                         sys.stdout.flush()
                         break
 
-                # 3. Transcribe if speech was captured
+                # 3. Transcribe ONLY if genuine speech was confirmed
                 if speech_detected and len(directive_samples) >= 16000:
                     directive_wav = "/tmp/void_dynamic_directive.wav"
                     write_wav(directive_wav, directive_samples, 16000)
@@ -188,6 +213,7 @@ def main():
                         "-t", "2",
                         "-nt",
                         "-ac", str(audio_ctx),
+                        "--no-speech-thold", "0.6",
                         "--prompt", "Anotações diárias em português brasileiro, fala natural e rápida.",
                         directive_wav,
                     ]
@@ -208,7 +234,8 @@ def main():
                         if clean_text.lower().startswith(prefix):
                             clean_text = clean_text[len(prefix):].lstrip(" ,.:-")
 
-                    if len(clean_text) >= 3:
+                    # Filter hallucinations or empty
+                    if len(clean_text) >= 3 and not is_repeating_hallucination(clean_text):
                         today_str = time.strftime("%Y-%m-%d")
                         os.makedirs("notes", exist_ok=True)
                         note_path = os.path.join("notes", f"{today_str}.md")
@@ -223,10 +250,17 @@ def main():
                         subprocess.Popen(["pw-play", "sounds/chime_complete.wav"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         subprocess.Popen(["notify-send", "-t", "3500", "V.O.I.D. — Nota Salva", clean_text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     else:
-                        print("  ⚠️ Nenhuma fala audível compreendida.", flush=True)
+                        print("  ⚠️ Alucinação ou fala inaudível descartada com sucesso.", flush=True)
 
+                # 4. Critical: Complete buffer clearing and refractory cooldown
                 flush_pipe(pw_proc.stdout)
                 oww_model.reset()
+                oww_model.preprocessor.raw_data_buffer.clear()
+                oww_model.preprocessor.melspectrogram_buffer.fill(0)
+                oww_model.preprocessor.feature_buffer.fill(0)
+
+                # 2.5 seconds cooldown where triggers are strictly suppressed
+                cooldown_until = time.time() + 2.5
                 print("\nPronto! Aguardando próxima chamada ('VOID')...\n", flush=True)
 
     except KeyboardInterrupt:
