@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'bridge/void_bridge.dart';
 import 'platform/tray_hotkey.dart';
 import 'screens/notes_screen.dart';
+import 'theme/void_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,19 +33,7 @@ class VoidApp extends StatelessWidget {
     return MaterialApp(
       title: 'void-notes',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF141414),
-        cardColor: const Color(0xFF282828),
-        primaryColor: const Color(0xFF1C594D),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF1C594D),
-          secondary: Color(0xFF224E16),
-          surface: Color(0xFF282828),
-          onPrimary: Color(0xFFE2E2E2),
-          onSurface: Color(0xFFE2E2E2),
-          outline: Color(0xFF4C4141),
-        ),
-      ),
+      theme: VoidTheme.darkTheme,
       home: NotesScreen(bridge: bridge),
     );
   }

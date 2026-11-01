@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../bridge/void_bridge.dart';
+import '../theme/void_theme.dart';
 
 /// Dedicated screen for viewing and interacting with a directive note or checklist.
 class NoteDetailScreen extends StatefulWidget {
@@ -29,15 +30,15 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   late Set<int> _checked;
   final TextEditingController _addItemController = TextEditingController();
 
-  // Topbar Palette Tokens from system configuration:
-  static const Color kBgColor = Color(0xFF141414);
-  static const Color kPillBg = Color(0xFF1C1C1C);
-  static const Color kMenuSurface = Color(0xFF282828);
-  static const Color kAccent = Color(0xFF1C594D);
-  static const Color kInactiveDot = Color(0xFF224E16);
-  static const Color kPrimaryText = Color(0xFFE2E2E2);
-  static const Color kSecondaryText = Color(0xFFEDEDED);
-  static const Color kBorder = Color(0xFF4C4141);
+  // Mapped directly to unified VoidTheme design tokens:
+  static const Color kBgColor = VoidTheme.bg;
+  static const Color kPillBg = VoidTheme.pillBg;
+  static const Color kMenuSurface = VoidTheme.surface;
+  static const Color kAccent = VoidTheme.accent;
+  static const Color kInactiveDot = VoidTheme.inactiveDot;
+  static const Color kPrimaryText = VoidTheme.textPrimary;
+  static const Color kSecondaryText = VoidTheme.textSecondary;
+  static const Color kBorder = VoidTheme.border;
 
   @override
   void initState() {
