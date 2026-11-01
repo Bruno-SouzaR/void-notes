@@ -14,7 +14,7 @@ class StaggeredMasonryGrid extends StatelessWidget {
   final Function(String noteId, Set<int> updatedChecked)? onCheckedUpdated;
 
   const StaggeredMasonryGrid({
-    Key? key,
+    super.key,
     required this.notes,
     required this.bridge,
     required this.numColumns,
@@ -22,7 +22,7 @@ class StaggeredMasonryGrid extends StatelessWidget {
     required this.isLoading,
     required this.checkedMap,
     this.onCheckedUpdated,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +37,12 @@ class StaggeredMasonryGrid extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.notes, size: 48, color: VoidTheme.textSecondary.withOpacity(0.2)),
+            Icon(Icons.notes, size: 48, color: VoidTheme.textSecondary.withValues(alpha: 0.2)),
             const SizedBox(height: 12),
             Text(
               'Nenhuma nota encontrada.',
               style: TextStyle(
-                color: VoidTheme.textSecondary.withOpacity(0.5),
+                color: VoidTheme.textSecondary.withValues(alpha: 0.5),
                 fontSize: 14,
               ),
             ),

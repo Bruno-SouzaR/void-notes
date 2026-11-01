@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../bridge/void_bridge.dart';
 import '../theme/void_theme.dart';
+import '../utils/directive_parser.dart';
 import '../widgets/floating_search_pill.dart';
 import '../widgets/navigation_sidebar.dart';
 import '../widgets/staggered_masonry_grid.dart';
@@ -12,7 +13,7 @@ import '../widgets/staggered_masonry_grid.dart';
 class NotesScreen extends StatefulWidget {
   final VoidBridge bridge;
 
-  const NotesScreen({Key? key, required this.bridge}) : super(key: key);
+  const NotesScreen({super.key, required this.bridge});
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
@@ -32,6 +33,7 @@ class _NotesScreenState extends State<NotesScreen> {
   bool _isLoading = true;
   bool _isCapturing = false;
   bool _isGridView = true;
+  bool _isInverted = false;
   String _hudStatus = 'Ouvindo por "VOID"';
 
   Timer? _autoRefreshTimer;
@@ -99,19 +101,14 @@ class _NotesScreenState extends State<NotesScreen> {
   List<DirectiveNote> get _filteredNotes {
     var list = _allNotes;
     if (_activeNavTab == 'lists') {
-      list = list.where((n) {
-        final l = n.content.toLowerCase();
-        return l.contains('lista') ||
-            l.contains('mercado') ||
-            l.contains('compras') ||
-            l.contains('comprar') ||
-            n.content.contains('- [ ]') ||
-            n.content.contains('- [x]');
-      }).toList();
+      list = list.where((n) => DirectiveParser.isChecklist(n.content)).toList();
     }
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.toLowerCase();
       list = list.where((n) => n.content.toLowerCase().contains(q)).toList();
+    }
+    if (_isInverted) {
+      list = list.reversed.toList();
     }
     return list;
   }
@@ -239,7 +236,7 @@ class _NotesScreenState extends State<NotesScreen> {
                                   focusNode: _searchFocusNode,
                                   isGridView: _isGridView,
                                   onToggleView: () => setState(() => _isGridView = !_isGridView),
-                                  onInvertOrder: () => setState(() => _allNotes = _allNotes.reversed.toList()),
+                                  onInvertOrder: () => setState(() => _isInverted = !_isInverted),
                                   onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
                                   onChanged: (val) => setState(() => _searchQuery = val),
                                 ),
@@ -269,7 +266,7 @@ class _NotesScreenState extends State<NotesScreen> {
                             focusNode: _searchFocusNode,
                             isGridView: _isGridView,
                             onToggleView: () => setState(() => _isGridView = !_isGridView),
-                            onInvertOrder: () => setState(() => _allNotes = _allNotes.reversed.toList()),
+                            onInvertOrder: () => setState(() => _isInverted = !_isInverted),
                             onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
                             onChanged: (val) => setState(() => _searchQuery = val),
                           ),
@@ -307,7 +304,7 @@ class _NotesScreenState extends State<NotesScreen> {
         border: Border.all(color: VoidTheme.border),
         boxShadow: [
           BoxShadow(
-            color: VoidTheme.accent.withOpacity(0.5),
+            color: VoidTheme.accent.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

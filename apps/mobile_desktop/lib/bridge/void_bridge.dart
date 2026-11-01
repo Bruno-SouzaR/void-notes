@@ -71,6 +71,8 @@ abstract class VoidBridge {
 
   Future<void> setSilentMode(bool enabled);
 
+  bool get isSilent;
+
   void setSelectedModel(String model);
 
   String get selectedModel;
@@ -92,6 +94,9 @@ class LocalFileVoidBridge implements VoidBridge {
 
   @override
   String get selectedModel => _selectedModel;
+
+  @override
+  bool get isSilent => _silent;
 
   @override
   Future<void> initEngine({

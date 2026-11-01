@@ -26,7 +26,7 @@ void main() async {
 class VoidApp extends StatelessWidget {
   final VoidBridge bridge;
 
-  const VoidApp({Key? key, required this.bridge}) : super(key: key);
+  const VoidApp({super.key, required this.bridge});
 
   @override
   Widget build(BuildContext context) {

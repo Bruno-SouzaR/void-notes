@@ -14,7 +14,7 @@ class FloatingSearchPill extends StatelessWidget {
   final ValueChanged<String> onChanged;
 
   const FloatingSearchPill({
-    Key? key,
+    super.key,
     required this.isDesktop,
     required this.controller,
     required this.focusNode,
@@ -23,7 +23,7 @@ class FloatingSearchPill extends StatelessWidget {
     required this.onInvertOrder,
     required this.onMenuPressed,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +39,7 @@ class FloatingSearchPill extends StatelessWidget {
         border: Border.all(color: VoidTheme.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -60,7 +60,7 @@ class FloatingSearchPill extends StatelessWidget {
               decoration: InputDecoration(
                 hintText: isDesktop ? 'Search notes (Pressione "/" para focar)' : 'Search notes',
                 hintStyle: TextStyle(
-                  color: VoidTheme.textSecondary.withOpacity(0.4),
+                  color: VoidTheme.textSecondary.withValues(alpha: 0.4),
                   fontSize: 14,
                 ),
                 border: InputBorder.none,

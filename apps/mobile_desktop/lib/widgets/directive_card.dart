@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../bridge/void_bridge.dart';
 import '../screens/note_detail_screen.dart';
 import '../theme/void_theme.dart';
+import '../utils/directive_parser.dart';
 
 /// Isolated leaf component for displaying an individual directive note.
 /// Manages its own hover and checklist animations to prevent expensive parent rebuilds.
@@ -12,12 +13,12 @@ class DirectiveCard extends StatefulWidget {
   final Function(Set<int> updatedChecked)? onCheckedUpdated;
 
   const DirectiveCard({
-    Key? key,
+    super.key,
     required this.note,
     required this.bridge,
     this.initialChecked = const {},
     this.onCheckedUpdated,
-  }) : super(key: key);
+  });
 
   @override
   State<DirectiveCard> createState() => _DirectiveCardState();
@@ -26,90 +27,23 @@ class DirectiveCard extends StatefulWidget {
 class _DirectiveCardState extends State<DirectiveCard> {
   bool _isHovered = false;
   late Set<int> _checkedIndices;
-  late final String _title;
-  late final List<String> _items;
-  late final bool _isList;
+  late ParsedDirective _parsed;
 
   @override
   void initState() {
     super.initState();
     _checkedIndices = Set<int>.from(widget.initialChecked);
-    final parsed = _parseContent(widget.note.content);
-    _title = parsed.$1;
-    _items = parsed.$2;
-    _isList = parsed.$3;
+    _parsed = DirectiveParser.parse(widget.note.content);
   }
 
-  (String, List<String>, bool) _parseContent(String rawContent) {
-    var text = rawContent.trim();
-    final lower = text.toLowerCase();
-    final isList = lower.contains('lista') ||
-        lower.contains('mercado') ||
-        lower.contains('compras') ||
-        lower.contains('comprar') ||
-        text.contains('- [ ]') ||
-        text.contains('- [x]');
-
-    if (isList) {
-      final prefixRegex = RegExp(
-        r'^(cria uma |fazer uma |nova |nota para o |nota para um )?lista( de compras| de mercado)?[:., -]*',
-        caseSensitive: false,
-      );
-      final match = prefixRegex.firstMatch(text);
-      String title = 'Lista de Compras';
-      if (match != null) {
-        final matchedText = match.group(0)!.trim().replaceAll(RegExp(r'[:., -]+$'), '');
-        if (matchedText.isNotEmpty) {
-          title = matchedText[0].toUpperCase() + matchedText.substring(1);
-        }
-        text = text.substring(match.end).trim();
-      }
-
-      List<String> rawItems = [];
-      if (text.contains('\n')) {
-        rawItems = text.split('\n');
-      } else if (text.contains(',') || text.contains(';')) {
-        rawItems = text.split(RegExp(r'[,;]'));
-      } else {
-        rawItems = [text];
-      }
-
-      List<String> items = [];
-      for (var item in rawItems) {
-        var cleaned = item.trim().replaceAll(RegExp(r'^\s*[-*•]\s*(\[[ x]\]\s*)?'), '').trim();
-        if (cleaned.contains(' e ') && !cleaned.toLowerCase().startsWith('e ')) {
-          for (var s in cleaned.split(' e ')) {
-            final st = s.trim().replaceAll(RegExp(r'\.+$'), '');
-            if (st.isNotEmpty) items.add(st);
-          }
-        } else {
-          final st = cleaned.replaceAll(RegExp(r'\.+$'), '');
-          if (st.isNotEmpty) items.add(st);
-        }
-      }
-
-      if (items.isEmpty && text.isNotEmpty) {
-        items = [text];
-      }
-      return (title, items, true);
-    } else {
-      String title;
-      String body;
-      if (text.contains('.')) {
-        final parts = text.split('.');
-        title = parts[0].trim();
-        body = parts.sublist(1).join('.').trim();
-      } else {
-        final words = text.split(' ');
-        if (words.length > 5) {
-          title = words.take(5).join(' ');
-          body = words.skip(5).join(' ');
-        } else {
-          title = text;
-          body = '';
-        }
-      }
-      return (title, body.isNotEmpty ? [body] : [], false);
+  @override
+  void didUpdateWidget(covariant DirectiveCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.note.content != widget.note.content) {
+      _parsed = DirectiveParser.parse(widget.note.content);
+    }
+    if (oldWidget.initialChecked != widget.initialChecked) {
+      _checkedIndices = Set<int>.from(widget.initialChecked);
     }
   }
 
@@ -126,7 +60,7 @@ class _DirectiveCardState extends State<DirectiveCard> {
 
   @override
   Widget build(BuildContext context) {
-    final totalItems = _items.length;
+    final totalItems = _parsed.items.length;
     final checkedCount = _checkedIndices.length;
     final targetProgress = totalItems > 0 ? (checkedCount / totalItems) : 0.0;
 
@@ -148,7 +82,7 @@ class _DirectiveCardState extends State<DirectiveCard> {
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: VoidTheme.accent.withOpacity(0.25),
+                    color: VoidTheme.accent.withValues(alpha: 0.25),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -167,7 +101,7 @@ class _DirectiveCardState extends State<DirectiveCard> {
                   builder: (context) => NoteDetailScreen(
                     note: widget.note,
                     bridge: widget.bridge,
-                    initialItems: _items.isNotEmpty ? _items : [widget.note.content],
+                    initialItems: _parsed.items.isNotEmpty ? _parsed.items : [widget.note.content],
                     initialChecked: _checkedIndices,
                     onCheckedUpdated: (updated) {
                       setState(() {
@@ -186,7 +120,7 @@ class _DirectiveCardState extends State<DirectiveCard> {
                 children: [
                   // Title
                   Text(
-                    _title,
+                    _parsed.title,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -197,7 +131,7 @@ class _DirectiveCardState extends State<DirectiveCard> {
                   const SizedBox(height: 10),
 
                   // Animated Progress Bar
-                  if (_isList && totalItems > 1) ...[
+                  if (_parsed.isList && totalItems > 1) ...[
                     TweenAnimationBuilder<double>(
                       tween: Tween<double>(begin: 0.0, end: targetProgress),
                       duration: const Duration(milliseconds: 250),
@@ -219,7 +153,7 @@ class _DirectiveCardState extends State<DirectiveCard> {
                       '$checkedCount de $totalItems (${(targetProgress * 100).toInt()}%)',
                       style: TextStyle(
                         fontSize: 11,
-                        color: VoidTheme.textSecondary.withOpacity(0.7),
+                        color: VoidTheme.textSecondary.withValues(alpha: 0.7),
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -227,20 +161,20 @@ class _DirectiveCardState extends State<DirectiveCard> {
                   ],
 
                   // Checklist Items
-                  if (_items.isNotEmpty)
+                  if (_parsed.items.isNotEmpty)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: List.generate(_items.take(6).length, (idx) {
+                      children: List.generate(_parsed.items.take(6).length, (idx) {
                         final isChecked = _checkedIndices.contains(idx);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 6),
                           child: InkWell(
-                            onTap: _isList ? () => _toggleItem(idx) : null,
+                            onTap: _parsed.isList ? () => _toggleItem(idx) : null,
                             borderRadius: BorderRadius.circular(4),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (_isList)
+                                if (_parsed.isList)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2, right: 8),
                                     child: AnimatedSwitcher(
@@ -259,14 +193,14 @@ class _DirectiveCardState extends State<DirectiveCard> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: isChecked
-                                          ? VoidTheme.textSecondary.withOpacity(0.35)
-                                          : VoidTheme.textSecondary.withOpacity(0.85),
+                                          ? VoidTheme.textSecondary.withValues(alpha: 0.35)
+                                          : VoidTheme.textSecondary.withValues(alpha: 0.85),
                                       decoration: isChecked ? TextDecoration.lineThrough : null,
-                                      decorationColor: VoidTheme.textSecondary.withOpacity(0.35),
+                                      decorationColor: VoidTheme.textSecondary.withValues(alpha: 0.35),
                                       height: 1.3,
                                     ),
                                     child: Text(
-                                      _items[idx],
+                                      _parsed.items[idx],
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -279,11 +213,11 @@ class _DirectiveCardState extends State<DirectiveCard> {
                       }),
                     ),
 
-                  if (_items.length > 6)
+                  if (_parsed.items.length > 6)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        '+ ${_items.length - 6} outros itens',
+                        '+ ${_parsed.items.length - 6} outros itens',
                         style: const TextStyle(fontSize: 11, color: VoidTheme.accent),
                       ),
                     ),
