@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../bridge/void_bridge.dart';
 import 'note_detail_screen.dart';
 
-/// Staggered Masonry Grid screen inspired by Google Keep and Apple Notes.
+/// Staggered Masonry Grid screen styled with user topbar theme.
 class NotesScreen extends StatefulWidget {
   final VoidBridge bridge;
 
@@ -17,16 +17,26 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Palette from user topbar images:
+  static const Color kBgColor = Color(0xFF141414);
+  static const Color kPillBg = Color(0xFF1C1C1C);
+  static const Color kMenuSurface = Color(0xFF282828);
+  static const Color kAccent = Color(0xFF1C594D);
+  static const Color kInactiveDot = Color(0xFF224E16);
+  static const Color kPrimaryText = Color(0xFFE2E2E2);
+  static const Color kSecondaryText = Color(0xFFEDEDED);
+  static const Color kBorder = Color(0xFF4C4141);
+
   List<DirectiveNote> _allNotes = [];
   List<String> _availableDates = [];
   String _selectedDate = '';
-  String _activeNavTab = 'today'; // 'today', 'lists', 'all', or date
+  String _activeNavTab = 'today';
   String _searchQuery = '';
 
   bool _isLoading = true;
   bool _silentMode = false;
   bool _isCapturing = false;
-  bool _isGridView = true; // Toggle between 2-column grid and single-column list
+  bool _isGridView = true;
   String _selectedModel = 'small';
   String _hudStatus = 'Ouvindo por "VOID"';
 
@@ -40,7 +50,6 @@ class _NotesScreenState extends State<NotesScreen> {
     _selectedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
     _loadDatesAndNotes();
 
-    // Auto-refresh every 3s to reflect notes captured by background daemon
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       _pollNotes();
     });
@@ -150,7 +159,7 @@ class _NotesScreenState extends State<NotesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✓ Nota capturada: "${_allNotes.first.content}"'),
-            backgroundColor: Colors.teal.shade800,
+            backgroundColor: kAccent,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -244,7 +253,7 @@ class _NotesScreenState extends State<NotesScreen> {
         final isDesktop = constraints.maxWidth >= 768;
         return Scaffold(
           key: _scaffoldKey,
-          backgroundColor: const Color(0xFF101216), // Dark background matching screenshot
+          backgroundColor: kBgColor,
           drawer: _buildDrawer(),
           body: SafeArea(
             child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
@@ -260,18 +269,19 @@ class _NotesScreenState extends State<NotesScreen> {
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        color: const Color(0xFF0084FF), // Vivid blue matching screenshot
+        color: kAccent, // Accent from Image #1 (#1C594D)
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorder),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0084FF).withOpacity(0.4),
+            color: kAccent.withOpacity(0.5),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: IconButton(
-        icon: Icon(_isCapturing ? Icons.graphic_eq : Icons.add, color: Colors.white, size: 28),
+        icon: Icon(_isCapturing ? Icons.graphic_eq : Icons.add, color: kPrimaryText, size: 28),
         onPressed: _isCapturing ? null : _triggerManualDirective,
         tooltip: 'Falar Diretiva',
       ),
@@ -280,12 +290,15 @@ class _NotesScreenState extends State<NotesScreen> {
 
   Widget _buildDrawer() {
     return Drawer(
-      backgroundColor: const Color(0xFF14171E),
+      backgroundColor: kPillBg,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF1E2128)),
+            decoration: const BoxDecoration(
+              color: kMenuSurface,
+              border: Border(bottom: BorderSide(color: kBorder)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -295,7 +308,7 @@ class _NotesScreenState extends State<NotesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0084FF).withOpacity(0.2),
+                        color: kAccent,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
@@ -305,25 +318,25 @@ class _NotesScreenState extends State<NotesScreen> {
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                           letterSpacing: 2.0,
-                          color: Color(0xFF0084FF),
+                          color: kPrimaryText,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('notes', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    const Text('notes', style: TextStyle(color: kPrimaryText, fontSize: 16)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   _hudStatus,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  style: TextStyle(color: kSecondaryText.withOpacity(0.6), fontSize: 12),
                 ),
               ],
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.today, color: Colors.white70),
-            title: const Text('Hoje', style: TextStyle(color: Colors.white)),
+            leading: const Icon(Icons.today, color: kPrimaryText),
+            title: const Text('Hoje', style: TextStyle(color: kPrimaryText)),
             onTap: () {
               Navigator.pop(context);
               setState(() {
@@ -334,8 +347,8 @@ class _NotesScreenState extends State<NotesScreen> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.checklist, color: Colors.white70),
-            title: const Text('Listas de Compras', style: TextStyle(color: Colors.white)),
+            leading: const Icon(Icons.checklist, color: kPrimaryText),
+            title: const Text('Listas de Compras', style: TextStyle(color: kPrimaryText)),
             onTap: () {
               Navigator.pop(context);
               setState(() => _activeNavTab = 'lists');
@@ -343,26 +356,30 @@ class _NotesScreenState extends State<NotesScreen> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.auto_awesome_motion, color: Colors.white70),
-            title: const Text('Todas as Notas', style: TextStyle(color: Colors.white)),
+            leading: const Icon(Icons.auto_awesome_motion, color: kPrimaryText),
+            title: const Text('Todas as Notas', style: TextStyle(color: kPrimaryText)),
             onTap: () {
               Navigator.pop(context);
               setState(() => _activeNavTab = 'all');
               _pollNotes();
             },
           ),
-          const Divider(color: Color(0xFF262A34)),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('HISTÓRICO', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+          const Divider(color: kBorder),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'HISTÓRICO',
+              style: TextStyle(color: kSecondaryText.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
           ..._availableDates.map((d) {
             final isSelected = _selectedDate == d && _activeNavTab != 'all' && _activeNavTab != 'lists';
             return ListTile(
               dense: true,
-              leading: Icon(Icons.calendar_today, size: 14, color: isSelected ? const Color(0xFF0084FF) : Colors.white24),
-              title: Text(d, style: TextStyle(color: isSelected ? Colors.white : Colors.white60, fontSize: 12, fontFamily: 'monospace')),
+              leading: Icon(Icons.calendar_today, size: 14, color: isSelected ? kAccent : kInactiveDot),
+              title: Text(d, style: TextStyle(color: isSelected ? kPrimaryText : kSecondaryText.withOpacity(0.6), fontSize: 12, fontFamily: 'monospace')),
               selected: isSelected,
+              selectedTileColor: kMenuSurface,
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
@@ -378,7 +395,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  // Floating White Search Pill matching screenshot
+  // Floating Pill Search Bar styled with user topbar theme
   Widget _buildFloatingSearchPill(bool isDesktop) {
     return Container(
       margin: EdgeInsets.symmetric(
@@ -387,20 +404,21 @@ class _NotesScreenState extends State<NotesScreen> {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white, // Crisp white pill like in screenshot
+        color: kPillBg, // #1C1C1C from Image #1
         borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: kBorder), // #4C4141 from Image #3
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.menu, color: Color(0xFF2D3139), size: 22),
+            icon: const Icon(Icons.menu, color: kPrimaryText, size: 22),
             onPressed: () {
               _scaffoldKey.currentState?.openDrawer();
             },
@@ -408,12 +426,12 @@ class _NotesScreenState extends State<NotesScreen> {
           ),
           Expanded(
             child: TextField(
-              style: const TextStyle(color: Color(0xFF1E2128), fontSize: 15),
-              decoration: const InputDecoration(
+              style: const TextStyle(color: kPrimaryText, fontSize: 15),
+              decoration: InputDecoration(
                 hintText: 'Search notes',
-                hintStyle: TextStyle(color: Color(0xFF8E95A5), fontSize: 15),
+                hintStyle: TextStyle(color: kSecondaryText.withOpacity(0.4), fontSize: 15),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
               ),
               onChanged: (val) => setState(() => _searchQuery = val),
             ),
@@ -421,14 +439,14 @@ class _NotesScreenState extends State<NotesScreen> {
           IconButton(
             icon: Icon(
               _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_outlined,
-              color: const Color(0xFF2D3139),
+              color: kPrimaryText,
               size: 20,
             ),
             onPressed: () => setState(() => _isGridView = !_isGridView),
             tooltip: _isGridView ? 'Lista Única' : 'Grade de 2 Colunas',
           ),
           IconButton(
-            icon: const Icon(Icons.swap_vert, color: Color(0xFF2D3139), size: 22),
+            icon: const Icon(Icons.swap_vert, color: kPrimaryText, size: 22),
             onPressed: () {
               setState(() {
                 _allNotes = _allNotes.reversed.toList();
@@ -436,18 +454,19 @@ class _NotesScreenState extends State<NotesScreen> {
             },
             tooltip: 'Inverter Ordem',
           ),
+          // Active dot styled with kAccent (#1C594D)
           Container(
             width: 28,
             height: 28,
             margin: const EdgeInsets.only(right: 4),
             decoration: const BoxDecoration(
-              color: Color(0xFF0084FF),
+              color: kAccent,
               shape: BoxShape.circle,
             ),
             child: const Center(
               child: Text(
                 'V',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryText, fontSize: 13),
               ),
             ),
           ),
@@ -473,23 +492,24 @@ class _NotesScreenState extends State<NotesScreen> {
         // Sidebar
         Container(
           width: 240,
-          color: const Color(0xFF14171E),
+          color: kPillBg,
           child: Column(
             children: [
               const SizedBox(height: 16),
               _buildSidebarItem('today', Icons.today, 'Hoje'),
               _buildSidebarItem('lists', Icons.checklist, 'Listas & Compras'),
               _buildSidebarItem('all', Icons.auto_awesome_motion, 'Todas as Notas'),
-              const Divider(color: Color(0xFF262A34), height: 24),
+              const Divider(color: kBorder, height: 24),
               Expanded(
                 child: ListView(
                   children: _availableDates.map((d) {
                     final isSelected = _selectedDate == d && _activeNavTab != 'all' && _activeNavTab != 'lists';
                     return ListTile(
                       dense: true,
-                      leading: Icon(Icons.calendar_today, size: 14, color: isSelected ? const Color(0xFF0084FF) : Colors.white24),
-                      title: Text(d, style: TextStyle(color: isSelected ? Colors.white : Colors.white60, fontSize: 12, fontFamily: 'monospace')),
+                      leading: Icon(Icons.calendar_today, size: 14, color: isSelected ? kAccent : kInactiveDot),
+                      title: Text(d, style: TextStyle(color: isSelected ? kPrimaryText : kSecondaryText.withOpacity(0.6), fontSize: 12, fontFamily: 'monospace')),
                       selected: isSelected,
+                      selectedTileColor: kMenuSurface,
                       onTap: () {
                         setState(() {
                           _selectedDate = d;
@@ -504,7 +524,7 @@ class _NotesScreenState extends State<NotesScreen> {
             ],
           ),
         ),
-        const VerticalDivider(width: 1, color: Color(0xFF262A34)),
+        const VerticalDivider(width: 1, color: kBorder),
         Expanded(
           child: Column(
             children: [
@@ -521,9 +541,17 @@ class _NotesScreenState extends State<NotesScreen> {
     final isSelected = _activeNavTab == id;
     return ListTile(
       dense: true,
-      leading: Icon(icon, color: isSelected ? const Color(0xFF0084FF) : Colors.white54, size: 20),
-      title: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      leading: Icon(icon, color: isSelected ? kAccent : kInactiveDot, size: 20),
+      title: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? kPrimaryText : kSecondaryText.withOpacity(0.7),
+          fontSize: 13,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
       selected: isSelected,
+      selectedTileColor: kMenuSurface,
       onTap: () {
         setState(() {
           _activeNavTab = id;
@@ -539,7 +567,7 @@ class _NotesScreenState extends State<NotesScreen> {
   // Staggered Masonry Grid Implementation
   Widget _buildStaggeredGrid(int numCols) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF0084FF)));
+      return const Center(child: CircularProgressIndicator(color: kAccent));
     }
 
     final notes = _filteredNotes;
@@ -547,17 +575,19 @@ class _NotesScreenState extends State<NotesScreen> {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.notes, size: 48, color: Colors.white24),
-            SizedBox(height: 12),
-            Text('Nenhuma nota encontrada.', style: TextStyle(color: Colors.white54, fontSize: 14)),
+          children: [
+            Icon(Icons.notes, size: 48, color: kSecondaryText.withOpacity(0.2)),
+            const SizedBox(height: 12),
+            Text(
+              'Nenhuma nota encontrada.',
+              style: TextStyle(color: kSecondaryText.withOpacity(0.5), fontSize: 14),
+            ),
           ],
         ),
       );
     }
 
     if (!_isGridView) {
-      // Single Column List Mode
       return ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: notes.length,
@@ -565,7 +595,6 @@ class _NotesScreenState extends State<NotesScreen> {
       );
     }
 
-    // Distribute into N columns for Masonry layout
     final columns = List.generate(numCols, (_) => <Widget>[]);
     for (var i = 0; i < notes.length; i++) {
       columns[i % numCols].add(_buildStaggeredCard(notes[i]));
@@ -593,7 +622,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  // Individual Card matching the screenshot style
+  // Individual Card matching Menu Surface palette
   Widget _buildStaggeredCard(DirectiveNote note) {
     final (title, items, isList) = _parseNoteStructure(note);
     final checkedSet = _checkedItems.putIfAbsent(note.id, () => <int>{});
@@ -625,19 +654,20 @@ class _NotesScreenState extends State<NotesScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E2128), // Matte Dark Charcoal matching the reference screenshot
+          color: kMenuSurface, // #282828 from Image #1
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kBorder), // #4C4141 from Image #3
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title in bold white
+            // Title in Primary Text
             Text(
               title,
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: kPrimaryText, // #E2E2E2 from Image #2
                 height: 1.25,
               ),
             ),
@@ -650,16 +680,18 @@ class _NotesScreenState extends State<NotesScreen> {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 3,
-                  backgroundColor: const Color(0xFF2C303B),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    progress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF0084FF),
-                  ),
+                  backgroundColor: kPillBg,
+                  valueColor: const AlwaysStoppedAnimation<Color>(kAccent),
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 '$checkedCount de $totalItems (${(progress * 100).toInt()}%)',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF8E95A5), fontFamily: 'monospace'),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: kSecondaryText.withOpacity(0.7),
+                  fontFamily: 'monospace',
+                ),
               ),
               const SizedBox(height: 8),
             ],
@@ -681,7 +713,7 @@ class _NotesScreenState extends State<NotesScreen> {
                             child: Icon(
                               isChecked ? Icons.check_box : Icons.check_box_outline_blank,
                               size: 14,
-                              color: isChecked ? const Color(0xFF10B981) : const Color(0xFF6B7280),
+                              color: isChecked ? kAccent : kInactiveDot,
                             ),
                           ),
                         Expanded(
@@ -689,9 +721,9 @@ class _NotesScreenState extends State<NotesScreen> {
                             items[idx],
                             style: TextStyle(
                               fontSize: 13,
-                              color: isChecked ? const Color(0xFF6B7280) : const Color(0xFF9E9E9E),
+                              color: isChecked ? kSecondaryText.withOpacity(0.35) : kSecondaryText.withOpacity(0.85),
                               decoration: isChecked ? TextDecoration.lineThrough : null,
-                              decorationColor: const Color(0xFF6B7280),
+                              decorationColor: kSecondaryText.withOpacity(0.35),
                               height: 1.3,
                             ),
                             maxLines: 2,
@@ -709,7 +741,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '+ ${items.length - 6} outros itens',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF60A5FA)),
+                  style: const TextStyle(fontSize: 11, color: kAccent),
                 ),
               ),
           ],

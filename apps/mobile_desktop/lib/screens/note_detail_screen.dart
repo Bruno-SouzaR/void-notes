@@ -29,6 +29,16 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   late Set<int> _checked;
   final TextEditingController _addItemController = TextEditingController();
 
+  // Topbar Palette Tokens from system configuration:
+  static const Color kBgColor = Color(0xFF141414);
+  static const Color kPillBg = Color(0xFF1C1C1C);
+  static const Color kMenuSurface = Color(0xFF282828);
+  static const Color kAccent = Color(0xFF1C594D);
+  static const Color kInactiveDot = Color(0xFF224E16);
+  static const Color kPrimaryText = Color(0xFFE2E2E2);
+  static const Color kSecondaryText = Color(0xFFEDEDED);
+  static const Color kBorder = Color(0xFF4C4141);
+
   @override
   void initState() {
     super.initState();
@@ -73,26 +83,27 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0D14), // Deep OLED black
+      backgroundColor: kBgColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF121622),
+        backgroundColor: kPillBg,
         elevation: 0,
+        iconTheme: const IconThemeData(color: kPrimaryText),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               _isChecklist ? 'Lista de Compras' : 'Diretiva de Voz',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kPrimaryText),
             ),
             Text(
               '${dateFormat.format(widget.note.createdAt)} às ${timeFormat.format(widget.note.createdAt)}',
-              style: const TextStyle(fontSize: 11, color: Colors.white38),
+              style: TextStyle(fontSize: 11, color: kSecondaryText.withOpacity(0.6)),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.copy, size: 20, color: Color(0xFF22D3EE)),
+            icon: const Icon(Icons.copy, size: 20, color: kPrimaryText),
             tooltip: 'Copiar texto',
             onPressed: () {
               Clipboard.setData(ClipboardData(text: widget.note.content));
@@ -119,9 +130,9 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                 padding: const EdgeInsets.all(18),
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141926),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
+                  color: kMenuSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kBorder),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,15 +140,15 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF06B6D4).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
+                            color: kAccent,
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
                             '🛒 LISTA ATIVA',
                             style: TextStyle(
-                              color: Color(0xFF22D3EE),
+                              color: kPrimaryText,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1.0,
@@ -150,28 +161,26 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: _progress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF22D3EE),
+                            color: _progress == 1.0 ? Colors.greenAccent : kPrimaryText,
                             fontFamily: 'monospace',
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: _progress,
-                        minHeight: 8,
-                        backgroundColor: const Color(0xFF1E2536),
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _progress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF06B6D4),
-                        ),
+                        minHeight: 6,
+                        backgroundColor: kPillBg,
+                        valueColor: const AlwaysStoppedAnimation<Color>(kAccent),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${_checked.length} de ${_items.length} itens marcados',
-                      style: const TextStyle(fontSize: 12, color: Colors.white54),
+                      style: TextStyle(fontSize: 12, color: kSecondaryText.withOpacity(0.65)),
                     ),
                   ],
                 ),
@@ -185,15 +194,15 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
-                  color: Colors.white38,
+                  color: kPrimaryText,
                 ),
               ),
               const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121622),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF1E2536)),
+                  color: kMenuSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kBorder),
                 ),
                 child: Column(
                   children: List.generate(_items.length, (idx) {
@@ -204,21 +213,21 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                           onTap: () => _toggleCheck(idx),
                           leading: Icon(
                             isChecked ? Icons.check_box : Icons.check_box_outline_blank,
-                            color: isChecked ? const Color(0xFF10B981) : Colors.white38,
+                            color: isChecked ? kAccent : kInactiveDot,
                             size: 22,
                           ),
                           title: Text(
                             _items[idx],
                             style: TextStyle(
-                              color: isChecked ? Colors.white38 : Colors.white,
+                              color: isChecked ? kSecondaryText.withOpacity(0.35) : kPrimaryText,
                               fontSize: 15,
                               decoration: isChecked ? TextDecoration.lineThrough : null,
-                              decorationColor: Colors.white38,
+                              decorationColor: kSecondaryText.withOpacity(0.35),
                             ),
                           ),
                         ),
                         if (idx < _items.length - 1)
-                          const Divider(color: Color(0xFF1A2030), height: 1),
+                          const Divider(color: kPillBg, height: 1),
                       ],
                     );
                   }),
@@ -231,24 +240,24 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   Expanded(
                     child: TextField(
                       controller: _addItemController,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      style: const TextStyle(color: kPrimaryText, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'Adicionar item manual...',
-                        hintStyle: const TextStyle(color: Colors.white24, fontSize: 13),
+                        hintStyle: TextStyle(color: kSecondaryText.withOpacity(0.4), fontSize: 13),
                         filled: true,
-                        fillColor: const Color(0xFF121622),
+                        fillColor: kPillBg,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF1E2536)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: kBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF1E2536)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: kBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF06B6D4)),
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: kAccent, width: 1.5),
                         ),
                       ),
                       onSubmitted: (_) => _addItem(),
@@ -256,7 +265,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.add_circle, color: Color(0xFF06B6D4), size: 32),
+                    icon: const Icon(Icons.add_circle, color: kAccent, size: 34),
                     tooltip: 'Adicionar',
                     onPressed: _addItem,
                   ),
@@ -268,14 +277,14 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141926),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF1E2536)),
+                  color: kMenuSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kBorder),
                 ),
                 child: Text(
                   widget.note.content,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: kPrimaryText,
                     fontSize: 16,
                     height: 1.5,
                   ),
@@ -288,33 +297,33 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
             // Metadata & Audio Diagnostics Box
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF0E121A),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF181E2B)),
+                color: kPillBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'DETALHES DA CAPTURA',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: Colors.white38),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2, color: kSecondaryText.withOpacity(0.5)),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '• Duração do Áudio: ${(widget.note.audioDurationMs / 1000).toStringAsFixed(1)}s gravados',
-                    style: const TextStyle(fontSize: 12, color: Colors.white54, fontFamily: 'monospace'),
+                    style: TextStyle(fontSize: 12, color: kSecondaryText.withOpacity(0.8), fontFamily: 'monospace'),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '• Identificador Único: ${widget.note.id}',
-                    style: const TextStyle(fontSize: 12, color: Colors.white54, fontFamily: 'monospace'),
+                    style: TextStyle(fontSize: 12, color: kSecondaryText.withOpacity(0.8), fontFamily: 'monospace'),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '• Transcrição Bruta: "${widget.note.rawTranscription}"',
-                    style: const TextStyle(fontSize: 12, color: Colors.white38, fontStyle: FontStyle.italic),
+                    style: TextStyle(fontSize: 12, color: kSecondaryText.withOpacity(0.5), fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
