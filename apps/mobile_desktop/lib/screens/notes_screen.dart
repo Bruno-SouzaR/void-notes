@@ -186,6 +186,9 @@ class _NotesScreenState extends State<NotesScreen> {
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
           if (!_isCapturing) _triggerManualDirective();
         },
+        const SingleActivator(LogicalKeyboardKey.keyQ, control: true): () {
+          SystemNavigator.pop();
+        },
       },
       child: Focus(
         autofocus: true,
