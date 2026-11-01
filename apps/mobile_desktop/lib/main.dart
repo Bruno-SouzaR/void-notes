@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'bridge/void_bridge.dart';
 import 'platform/tray_hotkey.dart';
 import 'screens/notes_screen.dart';
@@ -7,6 +8,7 @@ import 'theme/void_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null);
 
   final homeDir = Platform.environment['HOME'] ?? '/var/home/brunosouzar';
   final projectRoot = Directory('$homeDir/projects/void-notes');

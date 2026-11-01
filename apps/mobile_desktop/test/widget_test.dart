@@ -126,6 +126,13 @@ void main() {
       expect(find.text('Lista de Compras'), findsOneWidget);
       expect(find.text('leite'), findsOneWidget);
       expect(find.text('manteiga'), findsOneWidget);
+
+      // Tap on the card to open NoteDetailScreen
+      await tester.tap(find.text('Lista de Compras'));
+      await tester.pumpAndSettle();
+
+      // Should be on detail screen with progress
+      expect(find.text('PROGRESSO'), findsOneWidget);
     });
   });
 }

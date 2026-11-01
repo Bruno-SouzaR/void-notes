@@ -77,11 +77,19 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     });
   }
 
+  String _formatDateTime(DateTime dt) {
+    String dateStr;
+    try {
+      dateStr = DateFormat('dd \'de\' MMMM \'de\' yyyy', 'pt_BR').format(dt);
+    } catch (_) {
+      dateStr = DateFormat('dd/MM/yyyy').format(dt);
+    }
+    final timeStr = DateFormat('HH:mm').format(dt);
+    return '$dateStr às $timeStr';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('dd \'de\' MMMM \'de\' yyyy', 'pt_BR');
-    final timeFormat = DateFormat('HH:mm');
-
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
@@ -95,7 +103,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kPrimaryText),
             ),
             Text(
-              '${dateFormat.format(widget.note.createdAt)} às ${timeFormat.format(widget.note.createdAt)}',
+              _formatDateTime(widget.note.createdAt),
               style: TextStyle(fontSize: 11, color: kSecondaryText.withValues(alpha: 0.5)),
             ),
           ],
@@ -239,11 +247,13 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               const SizedBox(height: 10),
               Container(
                 decoration: BoxDecoration(
-                  color: kMenuSurface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: kBorder),
                 ),
-                child: Column(
+                clipBehavior: Clip.antiAlias,
+                child: Material(
+                  color: kMenuSurface,
+                  child: Column(
                   children: List.generate(_items.length, (idx) {
                     final isChecked = _checked.contains(idx);
                     return Column(
@@ -271,6 +281,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                     );
                   }),
                 ),
+                  ),
               ),
               const SizedBox(height: 14),
               // Add Item Row
