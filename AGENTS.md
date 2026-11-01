@@ -72,11 +72,15 @@ The single source of truth for any AI agent working in this repository. In case 
 | Run idle CPU & memory resource benchmark | `cargo run --release --example bench_idle` |
 | Run linter / clippy | `cargo clippy --all-targets -- -D warnings` |
 | Format codebase | `cargo fmt --check` |
+| Run Flutter static analysis | `(cd apps/mobile_desktop && flutter analyze)` |
+| Run Flutter unit and smoke tests | `(cd apps/mobile_desktop && flutter test)` |
+| Build Flutter Linux desktop application | `(cd apps/mobile_desktop && flutter build linux --debug)` |
+| Run complete void-notes desktop app | `./run_app.sh` |
 
 ## Testing Standards & Quality Gates
 
 1. **Never Alter Tests to Bypass Failures**: You MUST NEVER modify, weaken, or delete existing tests to force failing code or half-baked implementations to pass. If an existing test breaks, the production implementation is considered defective and must be fixed.
-2. **Feature Acceptance Criteria**: A feature is considered successfully implemented ONLY when all automated tests pass (`cargo test`), compiler checks are clean with zero warnings (`cargo check`), and production builds compile cleanly.
+2. **Feature Acceptance Criteria**: A feature is considered successfully implemented ONLY when all automated tests pass (`cargo test` and `flutter test`), compiler and static analysis checks are clean with zero warnings or errors (`cargo check`, `cargo clippy`, and `flutter analyze`), and client/core builds compile cleanly (`flutter build linux --debug`).
 3. **Mandatory Happy Path & Edge Case Coverage**: Every new feature, service module, or domain utility MUST be accompanied by comprehensive tests covering both:
    - **Happy Path**: Standard, intended operational flow.
    - **Edge Cases**: Empty audio chunks, silence timeouts, overlapping speech, extreme background noise, hardware disconnects, and malformed inputs.
