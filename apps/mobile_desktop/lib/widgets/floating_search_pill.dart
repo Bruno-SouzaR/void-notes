@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../theme/void_theme.dart';
 
 /// Floating Search Pill component matching the user topbar aesthetic.
@@ -113,12 +112,6 @@ class FloatingSearchPill extends StatelessWidget {
               ),
             ),
           ),
-          if (isDesktop)
-            IconButton(
-              icon: const Icon(Icons.close, color: VoidTheme.textSecondary, size: 18),
-              onPressed: () => SystemNavigator.pop(),
-              tooltip: 'Fechar (Ctrl+Q)',
-            ),
         ],
       ),
     );
