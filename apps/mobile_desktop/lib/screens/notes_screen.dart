@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../bridge/void_bridge.dart';
+import 'note_detail_screen.dart';
 
-/// Main adaptive screen providing split-view for Desktop and thumb-friendly flow for Mobile.
+/// Staggered Masonry Grid screen inspired by Google Keep and Apple Notes.
 class NotesScreen extends StatefulWidget {
   final VoidBridge bridge;
 
@@ -15,6 +15,8 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
   List<DirectiveNote> _allNotes = [];
   List<String> _availableDates = [];
   String _selectedDate = '';
@@ -24,6 +26,7 @@ class _NotesScreenState extends State<NotesScreen> {
   bool _isLoading = true;
   bool _silentMode = false;
   bool _isCapturing = false;
+  bool _isGridView = true; // Toggle between 2-column grid and single-column list
   String _selectedModel = 'small';
   String _hudStatus = 'Ouvindo por "VOID"';
 
@@ -155,38 +158,83 @@ class _NotesScreenState extends State<NotesScreen> {
     }
   }
 
-  Future<void> _revokeLatest() async {
-    final revoked = await widget.bridge.revokeLatestDirective();
-    if (revoked != null) {
-      await _loadDatesAndNotes();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Diretiva revogada: "${revoked.content}"'),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
-
   bool _isChecklist(String content) {
     final lower = content.toLowerCase();
     return lower.contains('lista') ||
         lower.contains('mercado') ||
+        lower.contains('compras') ||
         lower.contains('comprar') ||
         content.contains('- [ ]') ||
         content.contains('- [x]');
   }
 
-  List<String> _extractItems(String content) {
-    if (content.contains('\n')) {
-      return content.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+  (String title, List<String> items, bool isList) _parseNoteStructure(DirectiveNote note) {
+    var text = note.content.trim();
+    final lower = text.toLowerCase();
+    final isList = _isChecklist(text);
+
+    if (isList) {
+      final prefixRegex = RegExp(
+        r'^(cria uma |fazer uma |nova |nota para o |nota para um )?lista( de compras| de mercado)?[:., -]*',
+        caseSensitive: false,
+      );
+      final match = prefixRegex.firstMatch(text);
+      String title = 'Lista de Compras';
+      if (match != null) {
+        final matchedText = match.group(0)!.trim().replaceAll(RegExp(r'[:., -]+$'), '');
+        if (matchedText.isNotEmpty) {
+          title = matchedText[0].toUpperCase() + matchedText.substring(1);
+        }
+        text = text.substring(match.end).trim();
+      }
+
+      List<String> rawItems = [];
+      if (text.contains('\n')) {
+        rawItems = text.split('\n');
+      } else if (text.contains(',') || text.contains(';')) {
+        rawItems = text.split(RegExp(r'[,;]'));
+      } else {
+        rawItems = [text];
+      }
+
+      List<String> items = [];
+      for (var item in rawItems) {
+        var cleaned = item.trim().replaceAll(RegExp(r'^\s*[-*•]\s*(\[[ x]\]\s*)?'), '').trim();
+        if (cleaned.contains(' e ') && !cleaned.toLowerCase().startsWith('e ')) {
+          for (var s in cleaned.split(' e ')) {
+            final st = s.trim().replaceAll(RegExp(r'\.+$'), '');
+            if (st.isNotEmpty) items.add(st);
+          }
+        } else {
+          final st = cleaned.replaceAll(RegExp(r'\.+$'), '');
+          if (st.isNotEmpty) items.add(st);
+        }
+      }
+
+      if (items.isEmpty && text.isNotEmpty) {
+        items = [text];
+      }
+
+      return (title, items, true);
+    } else {
+      String title;
+      String body;
+      if (text.contains('.')) {
+        final parts = text.split('.');
+        title = parts[0].trim();
+        body = parts.sublist(1).join('.').trim();
+      } else {
+        final words = text.split(' ');
+        if (words.length > 5) {
+          title = words.take(5).join(' ');
+          body = words.skip(5).join(' ');
+        } else {
+          title = text;
+          body = '';
+        }
+      }
+      return (title, body.isNotEmpty ? [body] : [], false);
     }
-    if (content.contains(':')) {
-      final afterColon = content.split(':').sublist(1).join(':').trim();
-      return afterColon.split(',').map((i) => i.trim()).where((i) => i.isNotEmpty).toList();
-    }
-    return [content];
   }
 
   @override
@@ -195,191 +243,253 @@ class _NotesScreenState extends State<NotesScreen> {
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 768;
         return Scaffold(
-          backgroundColor: const Color(0xFF0A0D14), // Deep OLED black
-          appBar: _buildAppBar(isDesktop),
-          body: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
-          bottomNavigationBar: isDesktop ? null : _buildMobileBottomBar(),
-          floatingActionButton: FloatingActionButton.extended(
-            backgroundColor: const Color(0xFF06B6D4), // Cyan Accent
-            foregroundColor: Colors.black,
-            elevation: 4,
-            icon: const Icon(Icons.mic, size: 22),
-            label: Text(
-              _isCapturing ? 'Ouvindo...' : 'Falar Diretiva',
-              style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
-            ),
-            onPressed: _isCapturing ? null : _triggerManualDirective,
+          key: _scaffoldKey,
+          backgroundColor: const Color(0xFF101216), // Dark background matching screenshot
+          drawer: _buildDrawer(),
+          body: SafeArea(
+            child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
           ),
+          floatingActionButton: _buildFab(),
         );
       },
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDesktop) {
-    return AppBar(
-      backgroundColor: const Color(0xFF121622),
-      elevation: 0,
-      titleSpacing: isDesktop ? 24 : 16,
-      title: Row(
+  Widget _buildFab() {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0084FF), // Vivid blue matching screenshot
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0084FF).withOpacity(0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: Icon(_isCapturing ? Icons.graphic_eq : Icons.add, color: Colors.white, size: 28),
+        onPressed: _isCapturing ? null : _triggerManualDirective,
+        tooltip: 'Falar Diretiva',
+      ),
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: const Color(0xFF14171E),
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF06B6D4).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.4)),
-            ),
-            child: const Text(
-              'VOID',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.5,
-                fontSize: 14,
-                color: Color(0xFF22D3EE),
-              ),
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF1E2128)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0084FF).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'VOID',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 2.0,
+                          color: Color(0xFF0084FF),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('notes', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _hudStatus,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 10),
-          const Text(
-            'notes',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w300,
-              color: Colors.white70,
-              letterSpacing: 1.0,
+          ListTile(
+            leading: const Icon(Icons.today, color: Colors.white70),
+            title: const Text('Hoje', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() {
+                _activeNavTab = 'today';
+                _selectedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+              });
+              _pollNotes();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.checklist, color: Colors.white70),
+            title: const Text('Listas de Compras', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _activeNavTab = 'lists');
+              _pollNotes();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.auto_awesome_motion, color: Colors.white70),
+            title: const Text('Todas as Notas', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() => _activeNavTab = 'all');
+              _pollNotes();
+            },
+          ),
+          const Divider(color: Color(0xFF262A34)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('HISTÓRICO', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+          ..._availableDates.map((d) {
+            final isSelected = _selectedDate == d && _activeNavTab != 'all' && _activeNavTab != 'lists';
+            return ListTile(
+              dense: true,
+              leading: Icon(Icons.calendar_today, size: 14, color: isSelected ? const Color(0xFF0084FF) : Colors.white24),
+              title: Text(d, style: TextStyle(color: isSelected ? Colors.white : Colors.white60, fontSize: 12, fontFamily: 'monospace')),
+              selected: isSelected,
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _selectedDate = d;
+                  _activeNavTab = 'date';
+                });
+                _pollNotes();
+              },
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // Floating White Search Pill matching screenshot
+  Widget _buildFloatingSearchPill(bool isDesktop) {
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 24 : 16,
+        vertical: 12,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white, // Crisp white pill like in screenshot
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.menu, color: Color(0xFF2D3139), size: 22),
+            onPressed: () {
+              _scaffoldKey.currentState?.openDrawer();
+            },
+            tooltip: 'Menu de Navegação',
+          ),
+          Expanded(
+            child: TextField(
+              style: const TextStyle(color: Color(0xFF1E2128), fontSize: 15),
+              decoration: const InputDecoration(
+                hintText: 'Search notes',
+                hintStyle: TextStyle(color: Color(0xFF8E95A5), fontSize: 15),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 4),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              _isGridView ? Icons.view_agenda_outlined : Icons.grid_view_outlined,
+              color: const Color(0xFF2D3139),
+              size: 20,
+            ),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+            tooltip: _isGridView ? 'Lista Única' : 'Grade de 2 Colunas',
+          ),
+          IconButton(
+            icon: const Icon(Icons.swap_vert, color: Color(0xFF2D3139), size: 22),
+            onPressed: () {
+              setState(() {
+                _allNotes = _allNotes.reversed.toList();
+              });
+            },
+            tooltip: 'Inverter Ordem',
+          ),
+          Container(
+            width: 28,
+            height: 28,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0084FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text(
+                'V',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+              ),
             ),
           ),
         ],
       ),
-      actions: [
-        // Model Selector Dropdown
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A2030),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: const Color(0xFF263045)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedModel,
-              dropdownColor: const Color(0xFF161C2A),
-              style: const TextStyle(fontSize: 12, color: Color(0xFF22D3EE), fontWeight: FontWeight.bold),
-              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF22D3EE), size: 18),
-              items: const [
-                DropdownMenuItem(value: 'small', child: Text('Small (181 MB)')),
-                DropdownMenuItem(value: 'base', child: Text('Base (57 MB)')),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() => _selectedModel = val);
-                  widget.bridge.setSelectedModel(val);
-                }
-              },
-            ),
-          ),
-        ),
+    );
+  }
 
-        // Silent / Meeting Mode Switch
-        Row(
-          children: [
-            Icon(
-              _silentMode ? Icons.volume_off : Icons.volume_up,
-              size: 18,
-              color: _silentMode ? Colors.amber : Colors.white38,
-            ),
-            Switch(
-              value: _silentMode,
-              onChanged: _toggleSilentMode,
-              activeColor: Colors.amber,
-            ),
-          ],
-        ),
-
-        IconButton(
-          icon: const Icon(Icons.refresh, size: 20),
-          tooltip: 'Atualizar notas',
-          onPressed: _loadDatesAndNotes,
-        ),
-        const SizedBox(width: 8),
+  // Mobile Single Column / 2-Column Grid
+  Widget _buildMobileLayout() {
+    return Column(
+      children: [
+        _buildFloatingSearchPill(false),
+        Expanded(child: _buildStaggeredGrid(2)),
       ],
     );
   }
 
-  // Desktop Split-View: Sidebar + Main Content Feed
+  // Desktop Responsive Layout
   Widget _buildDesktopLayout() {
     return Row(
       children: [
-        // Left Navigation Sidebar
+        // Sidebar
         Container(
-          width: 260,
-          color: const Color(0xFF0E121C),
+          width: 240,
+          color: const Color(0xFF14171E),
           child: Column(
             children: [
               const SizedBox(height: 16),
-              _buildSidebarItem(
-                id: 'today',
-                icon: Icons.today,
-                label: 'Hoje',
-                badge: _availableDates.isNotEmpty && _availableDates.first == _selectedDate
-                    ? '${_allNotes.length}'
-                    : null,
-              ),
-              _buildSidebarItem(
-                id: 'lists',
-                icon: Icons.checklist_rtl,
-                label: 'Listas & Compras',
-                badge: '${_allNotes.where((n) => _isChecklist(n.content)).length}',
-              ),
-              _buildSidebarItem(
-                id: 'all',
-                icon: Icons.auto_awesome_motion,
-                label: 'Todas as Notas',
-              ),
-              const Divider(color: Color(0xFF1E2536), height: 24),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'HISTÓRICO DE DATAS',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                      color: Colors.white38,
-                    ),
-                  ),
-                ),
-              ),
+              _buildSidebarItem('today', Icons.today, 'Hoje'),
+              _buildSidebarItem('lists', Icons.checklist, 'Listas & Compras'),
+              _buildSidebarItem('all', Icons.auto_awesome_motion, 'Todas as Notas'),
+              const Divider(color: Color(0xFF262A34), height: 24),
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: _availableDates.length,
-                  itemBuilder: (context, idx) {
-                    final d = _availableDates[idx];
+                child: ListView(
+                  children: _availableDates.map((d) {
                     final isSelected = _selectedDate == d && _activeNavTab != 'all' && _activeNavTab != 'lists';
                     return ListTile(
                       dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      leading: Icon(
-                        Icons.calendar_today,
-                        size: 14,
-                        color: isSelected ? const Color(0xFF22D3EE) : Colors.white24,
-                      ),
-                      title: Text(
-                        d,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontFamily: 'monospace',
-                          color: isSelected ? Colors.white : Colors.white60,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
+                      leading: Icon(Icons.calendar_today, size: 14, color: isSelected ? const Color(0xFF0084FF) : Colors.white24),
+                      title: Text(d, style: TextStyle(color: isSelected ? Colors.white : Colors.white60, fontSize: 12, fontFamily: 'monospace')),
                       selected: isSelected,
-                      selectedTileColor: const Color(0xFF161E2E),
                       onTap: () {
                         setState(() {
                           _selectedDate = d;
@@ -388,45 +498,18 @@ class _NotesScreenState extends State<NotesScreen> {
                         _pollNotes();
                       },
                     );
-                  },
-                ),
-              ),
-              // System health badge at bottom
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF141926),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF1E2536)),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.graphic_eq, size: 14, color: Color(0xFF10B981)),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'PipeWire • Whisper 2T • CPU <1%',
-                        style: TextStyle(fontSize: 10, color: Colors.white54, fontFamily: 'monospace'),
-                      ),
-                    ),
-                  ],
+                  }).toList(),
                 ),
               ),
             ],
           ),
         ),
-
-        // Vertical divider
-        const VerticalDivider(width: 1, color: Color(0xFF1E2536)),
-
-        // Main Feed
+        const VerticalDivider(width: 1, color: Color(0xFF262A34)),
         Expanded(
           child: Column(
             children: [
-              _buildSearchBar(),
-              _buildVoiceHudBar(),
-              Expanded(child: _buildFeedView()),
+              _buildFloatingSearchPill(true),
+              Expanded(child: _buildStaggeredGrid(3)),
             ],
           ),
         ),
@@ -434,84 +517,13 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  // Mobile Single Column Layout with Safe Area
-  Widget _buildMobileLayout() {
-    return SafeArea(
-      child: Column(
-        children: [
-          _buildSearchBar(),
-          _buildVoiceHudBar(),
-          Expanded(child: _buildFeedView()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileBottomBar() {
-    return BottomNavigationBar(
-      backgroundColor: const Color(0xFF121622),
-      selectedItemColor: const Color(0xFF22D3EE),
-      unselectedItemColor: Colors.white38,
-      currentIndex: _activeNavTab == 'today' ? 0 : (_activeNavTab == 'lists' ? 1 : 2),
-      onTap: (idx) {
-        setState(() {
-          if (idx == 0) {
-            _activeNavTab = 'today';
-            _selectedDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
-          } else if (idx == 1) {
-            _activeNavTab = 'lists';
-          } else {
-            _activeNavTab = 'all';
-          }
-        });
-        _pollNotes();
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.today), label: 'Hoje'),
-        BottomNavigationBarItem(icon: Icon(Icons.checklist), label: 'Listas'),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'),
-      ],
-    );
-  }
-
-  Widget _buildSidebarItem({
-    required String id,
-    required IconData icon,
-    required String label,
-    String? badge,
-  }) {
+  Widget _buildSidebarItem(String id, IconData icon, String label) {
     final isSelected = _activeNavTab == id;
     return ListTile(
       dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-      leading: Icon(icon, size: 18, color: isSelected ? const Color(0xFF22D3EE) : Colors.white54),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          color: isSelected ? Colors.white : Colors.white70,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      trailing: badge != null
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF06B6D4) : const Color(0xFF1E2536),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                badge,
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isSelected ? Colors.black : Colors.white70,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          : null,
+      leading: Icon(icon, color: isSelected ? const Color(0xFF0084FF) : Colors.white54, size: 20),
+      title: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white70, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       selected: isSelected,
-      selectedTileColor: const Color(0xFF161E2E),
       onTap: () {
         setState(() {
           _activeNavTab = id;
@@ -524,264 +536,185 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFF0A0D14),
-      child: TextField(
-        style: const TextStyle(color: Colors.white, fontSize: 13),
-        decoration: InputDecoration(
-          hintText: 'Buscar diretivas, itens de mercado ou tarefas...',
-          hintStyle: const TextStyle(color: Colors.white30, fontSize: 13),
-          prefixIcon: const Icon(Icons.search, size: 18, color: Colors.white38),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 16, color: Colors.white38),
-                  onPressed: () => setState(() => _searchQuery = ''),
-                )
-              : null,
-          filled: true,
-          fillColor: const Color(0xFF121622),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF1E2536)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF1E2536)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF06B6D4)),
-          ),
-        ),
-        onChanged: (val) => setState(() => _searchQuery = val),
-      ),
-    );
-  }
-
-  Widget _buildVoiceHudBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFF121622),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _isCapturing ? Colors.redAccent : const Color(0xFF10B981),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (_isCapturing ? Colors.redAccent : const Color(0xFF10B981)).withOpacity(0.4),
-                  blurRadius: 6,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _hudStatus,
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
-          ),
-          const Spacer(),
-          if (_allNotes.isNotEmpty)
-            TextButton.icon(
-              onPressed: _revokeLatest,
-              icon: const Icon(Icons.undo, size: 13, color: Colors.white60),
-              label: const Text(
-                'Desfazer última',
-                style: TextStyle(fontSize: 11, color: Colors.white60),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeedView() {
+  // Staggered Masonry Grid Implementation
+  Widget _buildStaggeredGrid(int numCols) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF06B6D4)));
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF0084FF)));
     }
 
     final notes = _filteredNotes;
-
     if (notes.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.mic_none, size: 48, color: Colors.white.withOpacity(0.15)),
-            const SizedBox(height: 16),
-            Text(
-              _searchQuery.isNotEmpty
-                  ? 'Nenhuma diretiva encontrada para "$_searchQuery".'
-                  : 'Nenhuma anotação nesta seção.',
-              style: const TextStyle(color: Colors.white54, fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Diga "VOID" no microfone ou clique em "Falar Diretiva".',
-              style: TextStyle(color: Colors.white24, fontSize: 12),
-            ),
+          children: const [
+            Icon(Icons.notes, size: 48, color: Colors.white24),
+            SizedBox(height: 12),
+            Text('Nenhuma nota encontrada.', style: TextStyle(color: Colors.white54, fontSize: 14)),
           ],
         ),
       );
     }
 
-    final timeFormat = DateFormat('HH:mm:ss');
+    if (!_isGridView) {
+      // Single Column List Mode
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: notes.length,
+        itemBuilder: (context, idx) => _buildStaggeredCard(notes[idx]),
+      );
+    }
 
-    return ListView.builder(
+    // Distribute into N columns for Masonry layout
+    final columns = List.generate(numCols, (_) => <Widget>[]);
+    for (var i = 0; i < notes.length; i++) {
+      columns[i % numCols].add(_buildStaggeredCard(notes[i]));
+    }
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: notes.length,
-      itemBuilder: (context, index) {
-        final note = notes[index];
-        final isList = _isChecklist(note.content);
-        final checkedSet = _checkedItems.putIfAbsent(note.id, () => <int>{});
-        final items = isList ? _extractItems(note.content) : <String>[];
-        final totalItems = items.length;
-        final completedCount = checkedSet.length;
-        final progress = totalItems > 0 ? (completedCount / totalItems) : 0.0;
-
-        return Card(
-          color: const Color(0xFF141926),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(
-              color: isList ? const Color(0xFF06B6D4).withOpacity(0.3) : const Color(0xFF1E2536),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(numCols, (colIdx) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: colIdx == 0 ? 0 : 6,
+                right: colIdx == numCols - 1 ? 0 : 6,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: columns[colIdx],
+              ),
             ),
-          ),
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Meta Row
-                Row(
-                  children: [
-                    if (isList)
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF06B6D4).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'LISTA DE COMPRAS',
-                          style: TextStyle(
-                            color: Color(0xFF22D3EE),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    Text(
-                      timeFormat.format(note.createdAt),
-                      style: const TextStyle(
-                        color: Color(0xFF22D3EE),
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Copy text button
-                    IconButton(
-                      icon: const Icon(Icons.copy, size: 14, color: Colors.white38),
-                      tooltip: 'Copiar texto',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: note.content));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Copiado para a área de transferência!'),
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
+          );
+        }),
+      ),
+    );
+  }
 
-                const SizedBox(height: 8),
+  // Individual Card matching the screenshot style
+  Widget _buildStaggeredCard(DirectiveNote note) {
+    final (title, items, isList) = _parseNoteStructure(note);
+    final checkedSet = _checkedItems.putIfAbsent(note.id, () => <int>{});
+    final totalItems = items.length;
+    final checkedCount = checkedSet.length;
+    final progress = totalItems > 0 ? (checkedCount / totalItems) : 0.0;
 
-                // Checklist Render with Progress
-                if (isList && items.length > 1) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 3,
-                      backgroundColor: const Color(0xFF1E2536),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$completedCount de $totalItems itens marcados (${(progress * 100).toInt()}%)',
-                    style: const TextStyle(fontSize: 11, color: Colors.white38),
-                  ),
-                  const SizedBox(height: 6),
-                  Column(
-                    children: List.generate(items.length, (itemIdx) {
-                      final isChecked = checkedSet.contains(itemIdx);
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            if (isChecked) {
-                              checkedSet.remove(itemIdx);
-                            } else {
-                              checkedSet.add(itemIdx);
-                            }
-                          });
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 3),
-                          child: Row(
-                            children: [
-                              Icon(
-                                isChecked ? Icons.check_box : Icons.check_box_outline_blank,
-                                size: 18,
-                                color: isChecked ? const Color(0xFF10B981) : Colors.white38,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  items[itemIdx],
-                                  style: TextStyle(
-                                    color: isChecked ? Colors.white38 : Colors.white,
-                                    fontSize: 13,
-                                    decoration: isChecked ? TextDecoration.lineThrough : null,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ] else ...[
-                  Text(
-                    note.content,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-              ],
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => NoteDetailScreen(
+              note: note,
+              bridge: widget.bridge,
+              initialItems: items.isNotEmpty ? items : [note.content],
+              initialChecked: checkedSet,
+              onCheckedUpdated: (updated) {
+                setState(() {
+                  _checkedItems[note.id] = updated;
+                });
+              },
             ),
           ),
         );
       },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E2128), // Matte Dark Charcoal matching the reference screenshot
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title in bold white
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Progress bar (if checklist with > 1 item)
+            if (isList && totalItems > 1) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 3,
+                  backgroundColor: const Color(0xFF2C303B),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress == 1.0 ? const Color(0xFF10B981) : const Color(0xFF0084FF),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$checkedCount de $totalItems (${(progress * 100).toInt()}%)',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF8E95A5), fontFamily: 'monospace'),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            // Items preview (up to 6 items displayed)
+            if (items.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(items.take(6).length, (idx) {
+                  final isChecked = checkedSet.contains(idx);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isList)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, right: 6),
+                            child: Icon(
+                              isChecked ? Icons.check_box : Icons.check_box_outline_blank,
+                              size: 14,
+                              color: isChecked ? const Color(0xFF10B981) : const Color(0xFF6B7280),
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            items[idx],
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isChecked ? const Color(0xFF6B7280) : const Color(0xFF9E9E9E),
+                              decoration: isChecked ? TextDecoration.lineThrough : null,
+                              decorationColor: const Color(0xFF6B7280),
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+
+            if (items.length > 6)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '+ ${items.length - 6} outros itens',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF60A5FA)),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
