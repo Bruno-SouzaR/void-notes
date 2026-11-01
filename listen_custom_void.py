@@ -79,6 +79,7 @@ def main():
     print("============================================================")
     print("  Modelo Ativo:        models/void_custom.onnx (Treinado na sua voz)")
     print("  Palavra de Ativação: 'VOID' (palavra única)")
+    print("  Limiar de Precisão:  >= 95.0% (Ignora palavras similares < 95%)")
     print("  Entrada de Áudio:    pw-record --raw (PipeWire nativo)")
     print("  Aguardando chamada... Diga 'VOID' no microfone.")
     print("============================================================\n")
@@ -129,10 +130,11 @@ def main():
             sys.stdout.write(f"\r  [●] Ouvindo: [{bar_str}] RMS: {chunk_rms:.4f} | {status_tag}  ")
             sys.stdout.flush()
 
-            # Trigger only if above 0.55 and outside cooldown window
-            if prob >= 0.55 and not is_cooldown:
+            # Strict metric: Trigger only if confidence >= 95.0% and outside cooldown
+            CONFIDENCE_THRESHOLD = 0.95
+            if prob >= CONFIDENCE_THRESHOLD and not is_cooldown:
                 now_str = time.strftime("%H:%M:%S")
-                print(f"\n\n⚡ [{now_str}] WakeWord 'VOID' Detectado (Confiança: {prob*100:.1f}%)!", flush=True)
+                print(f"\n\n⚡ [{now_str}] WakeWord 'VOID' Confirmado (Confiança: {prob*100:.1f}% >= 95%)!", flush=True)
 
                 # 1. Play wake chime immediately in foreground
                 subprocess.run(["pw-play", "sounds/chime_wake.wav"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
