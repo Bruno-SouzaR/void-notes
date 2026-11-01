@@ -63,6 +63,10 @@ abstract class VoidBridge {
 
   Future<List<DirectiveNote>> listTodayNotes();
 
+  Future<List<DirectiveNote>> listNotesForDate(String dateStr);
+
+  Future<List<String>> listAvailableDates();
+
   Future<DirectiveNote?> revokeLatestDirective();
 
   Future<void> setSilentMode(bool enabled);
@@ -77,7 +81,7 @@ class LocalFileVoidBridge implements VoidBridge {
   final Directory notesDirectory;
   final Directory projectRoot;
   bool _silent = false;
-  String _selectedModel = 'base';
+  String _selectedModel = 'small';
 
   LocalFileVoidBridge({required this.notesDirectory, required this.projectRoot});
 
@@ -135,7 +139,23 @@ class LocalFileVoidBridge implements VoidBridge {
   Future<List<DirectiveNote>> listTodayNotes() async {
     final now = DateTime.now();
     final todayStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final file = File('${notesDirectory.path}/$todayStr.md');
+    return listNotesForDate(todayStr);
+  }
+
+  @override
+  Future<List<String>> listAvailableDates() async {
+    if (!await notesDirectory.exists()) return [];
+    final files = await notesDirectory.list().where((e) => e.path.endsWith('.md')).toList();
+    final dates = files.map((f) {
+      return f.path.split(Platform.pathSeparator).last.replaceAll('.md', '');
+    }).where((d) => RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(d)).toList();
+    dates.sort((a, b) => b.compareTo(a));
+    return dates;
+  }
+
+  @override
+  Future<List<DirectiveNote>> listNotesForDate(String dateStr) async {
+    final file = File('${notesDirectory.path}/$dateStr.md');
 
     if (!await file.exists()) {
       return [];
@@ -143,9 +163,11 @@ class LocalFileVoidBridge implements VoidBridge {
 
     final lines = await file.readAsLines();
     final List<DirectiveNote> notes = [];
-
-    // Parse lines formatted as: - **[HH:MM:SS]** content
     final regex = RegExp(r'^- \*\*\[(\d{2}:\d{2}:\d{2})\]\*\* (.+)$');
+    final dateParts = dateStr.split('-');
+    final year = int.tryParse(dateParts[0]) ?? DateTime.now().year;
+    final month = int.tryParse(dateParts[1]) ?? DateTime.now().month;
+    final day = int.tryParse(dateParts[2]) ?? DateTime.now().day;
 
     for (var i = lines.length - 1; i >= 0; i--) {
       final line = lines[i].trim();
@@ -155,16 +177,16 @@ class LocalFileVoidBridge implements VoidBridge {
         final content = match.group(2)!;
         final timeParts = timeStr.split(':');
         final createdAt = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          int.parse(timeParts[0]),
-          int.parse(timeParts[1]),
-          int.parse(timeParts[2]),
+          year,
+          month,
+          day,
+          int.tryParse(timeParts[0]) ?? 0,
+          int.tryParse(timeParts[1]) ?? 0,
+          int.tryParse(timeParts[2]) ?? 0,
         );
 
         notes.add(DirectiveNote(
-          id: 'note_$i',
+          id: '${dateStr}_$i',
           content: content,
           rawTranscription: content,
           audioDurationMs: 4000,
