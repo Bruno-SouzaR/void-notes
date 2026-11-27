@@ -42,9 +42,12 @@ jobs:
         working-directory: apps/mobile_desktop
     steps:
       - uses: actions/checkout@v4
+      # Pinned to the toolchain the app is developed against. Flutter 3.50 deprecates
+      # `package:flutter/material.dart` (split into material_ui), which turns 9 info-level
+      # notices into a non-zero `flutter analyze`. Migrating is a separate, reviewable change.
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.47.9'
           cache: true
       - name: Dependencies
         run: flutter pub get
