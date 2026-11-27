@@ -3,6 +3,8 @@
 Hands-free voice notes on Linux: say **"Void"** or **"Hey Void"**, speak, and the thought is transcribed
 offline and saved as a timestamped note in SQLite and in a daily Markdown file.
 
+![void-notes on Linux](docs/screenshots/main.png)
+
 ![status](https://img.shields.io/badge/platform-Linux-FCC624)
 ![status](https://img.shields.io/badge/Android%2FiOS-not%20implemented-lightgrey)
 

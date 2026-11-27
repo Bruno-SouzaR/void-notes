@@ -254,6 +254,7 @@ class _NotesScreenState extends State<NotesScreen> {
                                     onCheckedUpdated: (id, updated) {
                                       _checkedMap[id] = updated;
                                     },
+                                    onDeleted: _loadDatesAndNotes,
                                   ),
                                 ),
                               ],
@@ -284,6 +285,7 @@ class _NotesScreenState extends State<NotesScreen> {
                               onCheckedUpdated: (id, updated) {
                                 _checkedMap[id] = updated;
                               },
+                              onDeleted: _loadDatesAndNotes,
                             ),
                           ),
                         ],

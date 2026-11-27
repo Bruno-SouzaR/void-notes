@@ -33,6 +33,13 @@ class FakeVoidBridge implements VoidBridge {
   }
 
   @override
+  Future<bool> deleteNote(DirectiveNote note) async {
+    final before = notes.length;
+    notes.removeWhere((candidate) => candidate.id == note.id);
+    return notes.length < before;
+  }
+
+  @override
   Future<List<String>> listAvailableDates() async {
     return ['2026-11-01'];
   }

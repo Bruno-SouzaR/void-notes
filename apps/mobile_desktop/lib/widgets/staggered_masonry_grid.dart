@@ -12,6 +12,7 @@ class StaggeredMasonryGrid extends StatelessWidget {
   final bool isLoading;
   final Map<String, Set<int>> checkedMap;
   final Function(String noteId, Set<int> updatedChecked)? onCheckedUpdated;
+  final VoidCallback? onDeleted;
 
   const StaggeredMasonryGrid({
     super.key,
@@ -22,6 +23,7 @@ class StaggeredMasonryGrid extends StatelessWidget {
     required this.isLoading,
     required this.checkedMap,
     this.onCheckedUpdated,
+    this.onDeleted,
   });
 
   @override
@@ -64,6 +66,7 @@ class StaggeredMasonryGrid extends StatelessWidget {
             bridge: bridge,
             initialChecked: checkedMap[note.id] ?? const {},
             onCheckedUpdated: (updated) => onCheckedUpdated?.call(note.id, updated),
+            onDeleted: onDeleted,
           );
         },
       );
@@ -80,6 +83,7 @@ class StaggeredMasonryGrid extends StatelessWidget {
           bridge: bridge,
           initialChecked: checkedMap[note.id] ?? const {},
           onCheckedUpdated: (updated) => onCheckedUpdated?.call(note.id, updated),
+          onDeleted: onDeleted,
         ),
       );
     }

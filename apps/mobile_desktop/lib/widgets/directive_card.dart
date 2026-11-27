@@ -3,6 +3,7 @@ import '../bridge/void_bridge.dart';
 import '../screens/note_detail_screen.dart';
 import '../theme/void_theme.dart';
 import '../utils/directive_parser.dart';
+import 'confirm_delete_dialog.dart';
 
 /// Isolated leaf component for displaying an individual directive note.
 /// Manages its own hover and checklist animations to prevent expensive parent rebuilds.
@@ -11,6 +12,7 @@ class DirectiveCard extends StatefulWidget {
   final VoidBridge bridge;
   final Set<int> initialChecked;
   final Function(Set<int> updatedChecked)? onCheckedUpdated;
+  final VoidCallback? onDeleted;
 
   const DirectiveCard({
     super.key,
@@ -18,6 +20,7 @@ class DirectiveCard extends StatefulWidget {
     required this.bridge,
     this.initialChecked = const {},
     this.onCheckedUpdated,
+    this.onDeleted,
   });
 
   @override
@@ -44,6 +47,16 @@ class _DirectiveCardState extends State<DirectiveCard> {
     }
     if (oldWidget.initialChecked != widget.initialChecked) {
       _checkedIndices = Set<int>.from(widget.initialChecked);
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await confirmDeleteDialog(context, noteTitle: _parsed.title);
+    if (!confirmed) return;
+
+    final removed = await widget.bridge.deleteNote(widget.note);
+    if (removed) {
+      widget.onDeleted?.call();
     }
   }
 
@@ -94,8 +107,9 @@ class _DirectiveCardState extends State<DirectiveCard> {
           borderRadius: BorderRadius.circular(VoidTheme.radiusCard),
           child: InkWell(
             borderRadius: BorderRadius.circular(VoidTheme.radiusCard),
+            onLongPress: () => _confirmDelete(context),
             onTap: () async {
-              await Navigator.push(
+              final deletedInDetail = await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
                   builder: (context) => NoteDetailScreen(
@@ -112,21 +126,39 @@ class _DirectiveCardState extends State<DirectiveCard> {
                   ),
                 ),
               );
+              if (deletedInDetail == true) {
+                widget.onDeleted?.call();
+              }
             },
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
-                  Text(
-                    _parsed.title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: VoidTheme.textPrimary,
-                      height: 1.25,
-                    ),
+                  // Title + delete affordance (hover only)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _parsed.title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: VoidTheme.textPrimary,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                      if (_isHovered && widget.onDeleted != null)
+                        GestureDetector(
+                          onTap: () => _confirmDelete(context),
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 8, top: 2),
+                            child: Icon(Icons.delete_outline, size: 18, color: VoidTheme.textPrimary),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 10),
 

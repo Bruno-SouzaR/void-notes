@@ -71,6 +71,12 @@ pub fn list_today_notes() -> Result<Vec<DirectiveNote>> {
     service.list_today_notes()
 }
 
+/// Soft-deletes a directive by id, mirroring the change into its daily Markdown file.
+pub fn delete_note(id: String) -> Result<bool> {
+    let service = get_service()?.lock();
+    service.delete_note(&id)
+}
+
 /// Toggles between Normal and SilentMeeting feedback profiles.
 pub fn set_silent_mode(enabled: bool) -> Result<()> {
     let service = get_service()?.lock();

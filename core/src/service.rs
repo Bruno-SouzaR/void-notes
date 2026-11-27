@@ -199,6 +199,27 @@ impl VoidService {
         }
     }
 
+    /// Soft-deletes a directive by id and reconciles its daily Markdown file.
+    ///
+    /// Returns `false` when the id does not exist or was already deleted, so the UI can tell a stale
+    /// card from a successful removal.
+    pub fn delete_note(&self, id: &str) -> Result<bool> {
+        let conn = self.conn.lock();
+        let note = match DirectiveNoteRepository::get_by_id(&conn, id)? {
+            Some(note) if note.deleted_at.is_none() => note,
+            _ => return Ok(false),
+        };
+
+        let removed = DirectiveNoteRepository::soft_delete(&conn, id)?;
+        if removed {
+            let date_str = note.created_at.format("%Y-%m-%d").to_string();
+            let remaining_active = DirectiveNoteRepository::list_by_date(&conn, &date_str)?;
+            self.mirror.reconcile_day(&date_str, &remaining_active)?;
+        }
+
+        Ok(removed)
+    }
+
     /// Lists today's active directives.
     pub fn list_today_notes(&self) -> Result<Vec<DirectiveNote>> {
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../bridge/void_bridge.dart';
-import '../theme/void_theme.dart';
 import '../utils/directive_parser.dart';
+import '../widgets/confirm_delete_dialog.dart';
+import '../theme/void_theme.dart';
 
 /// Dedicated screen for viewing and interacting with a directive note or checklist.
 class NoteDetailScreen extends StatefulWidget {
@@ -40,11 +41,14 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   static const Color kSecondaryText = VoidTheme.textSecondary;
   static const Color kBorder = VoidTheme.border;
 
+  late ParsedDirective _parsed;
+
   @override
   void initState() {
     super.initState();
     _items = List.from(widget.initialItems);
     _checked = Set.from(widget.initialChecked);
+    _parsed = DirectiveParser.parse(widget.note.content);
   }
 
   @override
@@ -54,6 +58,9 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   }
 
   bool get _isChecklist => DirectiveParser.isChecklist(widget.note.content);
+
+  /// Body of the note without its title, so the title can be rendered as a heading.
+  String get _bodyText => _parsed.items.join('\n\n');
 
   double get _progress => _items.isEmpty ? 0.0 : _checked.length / _items.length;
 
@@ -123,35 +130,15 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.undo, size: 20, color: Colors.orangeAccent),
-            tooltip: 'Revogar diretiva',
+            icon: const Icon(Icons.delete_outline, size: 20, color: kPrimaryText),
+            tooltip: 'Excluir nota',
             onPressed: () async {
-              final confirmed = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: kMenuSurface,
-                  title: const Text('Revogar Nota?', style: TextStyle(color: kPrimaryText)),
-                  content: const Text(
-                    'Esta diretiva será removida do histórico e marcada como cancelada.',
-                    style: TextStyle(color: kSecondaryText),
-                  ),
-                  actions: [
-                    TextButton(
-                      child: const Text('Cancelar', style: TextStyle(color: kSecondaryText)),
-                      onPressed: () => Navigator.pop(ctx, false),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                      child: const Text('Revogar'),
-                      onPressed: () => Navigator.pop(ctx, true),
-                    ),
-                  ],
-                ),
-              );
-              if (confirmed == true && context.mounted) {
-                await widget.bridge.revokeLatestDirective();
-                if (context.mounted) Navigator.pop(context);
-              }
+              final title = DirectiveParser.parse(widget.note.content).title;
+              final confirmed = await confirmDeleteDialog(context, noteTitle: title);
+              if (!confirmed || !context.mounted) return;
+
+              final removed = await widget.bridge.deleteNote(widget.note);
+              if (context.mounted) Navigator.pop(context, removed);
             },
           ),
         ],
@@ -322,19 +309,31 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                 ],
               ),
             ] else ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: kMenuSurface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: kBorder),
-                ),
-                child: Text(
-                  widget.note.content,
-                  style: const TextStyle(fontSize: 16, height: 1.5, color: kPrimaryText),
+              Text(
+                _parsed.title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                  color: kPrimaryText,
                 ),
               ),
+              if (_bodyText.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: kMenuSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kBorder),
+                  ),
+                  child: Text(
+                    _bodyText,
+                    style: const TextStyle(fontSize: 16, height: 1.5, color: kPrimaryText),
+                  ),
+                ),
+              ],
             ],
 
             const SizedBox(height: 24),

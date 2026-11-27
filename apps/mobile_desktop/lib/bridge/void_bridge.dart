@@ -69,6 +69,9 @@ abstract class VoidBridge {
 
   Future<DirectiveNote?> revokeLatestDirective();
 
+  /// Removes a directive from its daily Markdown file. Returns false when the line is gone already.
+  Future<bool> deleteNote(DirectiveNote note);
+
   Future<void> setSilentMode(bool enabled);
 
   bool get isSilent;
@@ -145,6 +148,29 @@ class LocalFileVoidBridge implements VoidBridge {
     final now = DateTime.now();
     final todayStr = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     return listNotesForDate(todayStr);
+  }
+
+  @override
+  Future<bool> deleteNote(DirectiveNote note) async {
+    String two(int value) => value.toString().padLeft(2, '0');
+    final created = note.createdAt;
+    final dateStr =
+        '${created.year.toString().padLeft(4, '0')}-${two(created.month)}-${two(created.day)}';
+    final file = File('${notesDirectory.path}/$dateStr.md');
+    if (!await file.exists()) {
+      return false;
+    }
+
+    final stamp = '[${two(created.hour)}:${two(created.minute)}:${two(created.second)}]';
+    final lines = await file.readAsLines();
+    final index = lines.indexWhere((line) => line.trimRight().startsWith('- **$stamp**'));
+    if (index < 0) {
+      return false;
+    }
+
+    lines.removeAt(index);
+    await file.writeAsString('${lines.join('\n')}\n');
+    return true;
   }
 
   @override
