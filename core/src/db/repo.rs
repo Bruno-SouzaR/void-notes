@@ -1,7 +1,7 @@
-use chrono::{DateTime, Utc};
-use rusqlite::{params, Connection, Row};
 use crate::models::{DirectiveNote, SyncStatus};
 use crate::{Result, VoidError};
+use chrono::{DateTime, Utc};
+use rusqlite::{params, Connection, Row};
 
 pub struct DirectiveNoteRepository;
 
@@ -138,23 +138,46 @@ impl DirectiveNoteRepository {
 
         let created_at = DateTime::parse_from_rfc3339(&created_at_str)
             .map(|dt| dt.with_timezone(&Utc))
-            .map_err(|e| rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new(e)))?;
+            .map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    4,
+                    rusqlite::types::Type::Text,
+                    Box::new(e),
+                )
+            })?;
 
         let updated_at = DateTime::parse_from_rfc3339(&updated_at_str)
             .map(|dt| dt.with_timezone(&Utc))
-            .map_err(|e| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new(e)))?;
+            .map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    5,
+                    rusqlite::types::Type::Text,
+                    Box::new(e),
+                )
+            })?;
 
         let deleted_at = match &deleted_at_str {
             Some(s) => Some(
                 DateTime::parse_from_rfc3339(s)
                     .map(|dt| dt.with_timezone(&Utc))
-                    .map_err(|e| rusqlite::Error::FromSqlConversionFailure(6, rusqlite::types::Type::Text, Box::new(e)))?,
+                    .map_err(|e| {
+                        rusqlite::Error::FromSqlConversionFailure(
+                            6,
+                            rusqlite::types::Type::Text,
+                            Box::new(e),
+                        )
+                    })?,
             ),
             None => None,
         };
 
-        let sync_status = SyncStatus::try_from(sync_status_str.as_str())
-            .map_err(|e| rusqlite::Error::FromSqlConversionFailure(7, rusqlite::types::Type::Text, Box::new(VoidError::Domain(e))))?;
+        let sync_status = SyncStatus::try_from(sync_status_str.as_str()).map_err(|e| {
+            rusqlite::Error::FromSqlConversionFailure(
+                7,
+                rusqlite::types::Type::Text,
+                Box::new(VoidError::Domain(e)),
+            )
+        })?;
 
         Ok(DirectiveNote {
             id,
@@ -179,7 +202,11 @@ mod tests {
         let conn = Connection::open_in_memory().expect("failed to open memory db");
         initialize_schema(&conn).expect("failed to init schema");
 
-        let note = DirectiveNote::new("Lembrar de comprar pão", "void lembrar de comprar pao", 3200);
+        let note = DirectiveNote::new(
+            "Lembrar de comprar pão",
+            "void lembrar de comprar pao",
+            3200,
+        );
         let note_id = note.id.clone();
 
         // 1. Create
@@ -209,7 +236,8 @@ mod tests {
         assert!(deleted);
 
         // 6. Verify deleted note is hidden from list_active
-        let active_after_delete = DirectiveNoteRepository::list_active(&conn, 10).expect("list failed");
+        let active_after_delete =
+            DirectiveNoteRepository::list_active(&conn, 10).expect("list failed");
         assert_eq!(active_after_delete.len(), 0);
 
         // 7. Verify note still exists with deleted_at populated

@@ -29,7 +29,10 @@ fn test_regression_silent_meeting_mode_never_emits_audio_chimes() {
     let (_, trigger_actions) = service.process_audio_chunk(&speech, 30).unwrap();
     for action in &trigger_actions {
         if let FeedbackAction::PlayAudioChime(chime) = action {
-            panic!("AC-5 Invariant Violation: Chime '{}' emitted during WakeWord in SilentMeeting!", chime);
+            panic!(
+                "AC-5 Invariant Violation: Chime '{}' emitted during WakeWord in SilentMeeting!",
+                chime
+            );
         }
     }
 

@@ -17,7 +17,7 @@ impl Default for EnergyGateConfig {
             min_energy_threshold: 0.005, // -46 dBFS approx
             snr_multiplier: 1.8,         // Signal must be 1.8x estimated background noise
             noise_floor_alpha: 0.05,     // Slow adaptation to ambient room changes
-            max_zcr_threshold: 0.45,     // Human voice typically stays below 0.45 zero crossings per sample
+            max_zcr_threshold: 0.45, // Human voice typically stays below 0.45 zero crossings per sample
         }
     }
 }
@@ -124,7 +124,9 @@ mod tests {
     fn test_low_noise_floor_adaptation() {
         let mut gate = EnergyGate::with_defaults();
         // Low ambient noise (~0.002 RMS) below min_energy_threshold (0.005)
-        let low_noise: Vec<f32> = (0..480).map(|i| if i % 2 == 0 { 0.002 } else { -0.002 }).collect();
+        let low_noise: Vec<f32> = (0..480)
+            .map(|i| if i % 2 == 0 { 0.002 } else { -0.002 })
+            .collect();
         assert!(!gate.is_speech(&low_noise));
     }
 
@@ -140,7 +142,9 @@ mod tests {
     fn test_extreme_high_frequency_noise_rejection() {
         let mut gate = EnergyGate::with_defaults();
         // High frequency static noise: alternating every sample -> ZCR = 1.0 (exceeds max_zcr_threshold)
-        let high_freq_noise: Vec<f32> = (0..480).map(|i| if i % 2 == 0 { 0.1 } else { -0.1 }).collect();
+        let high_freq_noise: Vec<f32> = (0..480)
+            .map(|i| if i % 2 == 0 { 0.1 } else { -0.1 })
+            .collect();
         assert!(!gate.is_speech(&high_freq_noise));
     }
 }

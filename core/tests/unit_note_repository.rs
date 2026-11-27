@@ -34,14 +34,24 @@ fn test_repository_soft_delete_preserves_audit_trail() {
     DirectiveNoteRepository::create(&conn, &note).expect("create failed");
 
     // Initially active
-    assert_eq!(DirectiveNoteRepository::list_active(&conn, 10).unwrap().len(), 1);
+    assert_eq!(
+        DirectiveNoteRepository::list_active(&conn, 10)
+            .unwrap()
+            .len(),
+        1
+    );
 
     // Soft delete
     let deleted = DirectiveNoteRepository::soft_delete(&conn, &note.id).expect("delete failed");
     assert!(deleted);
 
     // Must be hidden from active list
-    assert_eq!(DirectiveNoteRepository::list_active(&conn, 10).unwrap().len(), 0);
+    assert_eq!(
+        DirectiveNoteRepository::list_active(&conn, 10)
+            .unwrap()
+            .len(),
+        0
+    );
 
     // Must still exist in database with deleted_at timestamp
     let raw_record = DirectiveNoteRepository::get_by_id(&conn, &note.id)
@@ -59,10 +69,12 @@ fn test_repository_date_filtering() {
     DirectiveNoteRepository::create(&conn, &note).expect("create failed");
 
     let today_prefix = note.created_at.format("%Y-%m-%d").to_string();
-    let today_notes = DirectiveNoteRepository::list_by_date(&conn, &today_prefix).expect("query failed");
+    let today_notes =
+        DirectiveNoteRepository::list_by_date(&conn, &today_prefix).expect("query failed");
     assert_eq!(today_notes.len(), 1);
 
     // Unrelated date returns empty
-    let past_notes = DirectiveNoteRepository::list_by_date(&conn, "1999-01-01").expect("query failed");
+    let past_notes =
+        DirectiveNoteRepository::list_by_date(&conn, "1999-01-01").expect("query failed");
     assert_eq!(past_notes.len(), 0);
 }

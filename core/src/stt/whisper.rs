@@ -1,8 +1,8 @@
+use crate::{Result, VoidError};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use crate::{Result, VoidError};
 
 /// Configuration for offline Whisper speech recognition.
 #[derive(Debug, Clone)]
@@ -26,7 +26,9 @@ impl Default for WhisperConfig {
             language: "pt".to_string(),
             threads: 2, // Clamped per ADR 0001 & Grilling consensus
             translate: false,
-            initial_prompt: Some("Anotações em português brasileiro, fala natural e contínua.".to_string()),
+            initial_prompt: Some(
+                "Anotações em português brasileiro, fala natural e contínua.".to_string(),
+            ),
         }
     }
 }
@@ -66,7 +68,9 @@ impl WhisperCliRecognizer {
             model_path: model_path.into(),
             language: "pt".to_string(),
             threads: 2,
-            initial_prompt: Some("Anotações em português brasileiro, fala natural e contínua.".to_string()),
+            initial_prompt: Some(
+                "Anotações em português brasileiro, fala natural e contínua.".to_string(),
+            ),
         }
     }
 
@@ -111,11 +115,11 @@ impl WhisperCliRecognizer {
         // fmt chunk (16-bit mono 16 kHz PCM)
         file.write_all(b"fmt ")?;
         file.write_all(&16u32.to_le_bytes())?; // Chunk size (16 for PCM)
-        file.write_all(&1u16.to_le_bytes())?;  // Format (1 = PCM)
-        file.write_all(&1u16.to_le_bytes())?;  // Channels (1 = mono)
+        file.write_all(&1u16.to_le_bytes())?; // Format (1 = PCM)
+        file.write_all(&1u16.to_le_bytes())?; // Channels (1 = mono)
         file.write_all(&16000u32.to_le_bytes())?; // Sample rate
         file.write_all(&32000u32.to_le_bytes())?; // Byte rate (16000 * 1 * 2)
-        file.write_all(&2u16.to_le_bytes())?;  // Block align
+        file.write_all(&2u16.to_le_bytes())?; // Block align
         file.write_all(&16u16.to_le_bytes())?; // Bits per sample
 
         // data chunk
@@ -175,7 +179,10 @@ impl SpeechRecognizer for WhisperCliRecognizer {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(VoidError::Domain(format!("Whisper inference failed: {}", stderr)));
+            return Err(VoidError::Domain(format!(
+                "Whisper inference failed: {}",
+                stderr
+            )));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -187,7 +194,10 @@ impl SpeechRecognizer for WhisperCliRecognizer {
                 continue;
             }
             // Strip whisper status header lines if present
-            if trimmed.starts_with("whisper_") || trimmed.starts_with("system_info:") || trimmed.starts_with("main:") {
+            if trimmed.starts_with("whisper_")
+                || trimmed.starts_with("system_info:")
+                || trimmed.starts_with("main:")
+            {
                 continue;
             }
             clean_lines.push(trimmed);
@@ -205,7 +215,9 @@ pub struct MockSpeechRecognizer {
 
 impl MockSpeechRecognizer {
     pub fn new() -> Self {
-        Self { canned_response: None }
+        Self {
+            canned_response: None,
+        }
     }
 
     pub fn with_response(response: impl Into<String>) -> Self {
@@ -237,14 +249,18 @@ mod tests {
     fn test_mock_speech_recognizer() {
         let recognizer = MockSpeechRecognizer::with_response("Comprar leite.");
         let dummy_samples = vec![0.1f32; 16000]; // 1 second
-        let result = recognizer.transcribe(&dummy_samples).expect("transcription failed");
+        let result = recognizer
+            .transcribe(&dummy_samples)
+            .expect("transcription failed");
         assert_eq!(result, "Comprar leite.");
     }
 
     #[test]
     fn test_mock_speech_recognizer_empty_audio() {
         let recognizer = MockSpeechRecognizer::new();
-        let result = recognizer.transcribe(&[]).expect("empty transcription failed");
+        let result = recognizer
+            .transcribe(&[])
+            .expect("empty transcription failed");
         assert_eq!(result, "");
     }
 

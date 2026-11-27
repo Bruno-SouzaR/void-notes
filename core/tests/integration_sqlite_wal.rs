@@ -1,8 +1,8 @@
 mod support;
 
+use rusqlite::Connection;
 use std::sync::Arc;
 use std::thread;
-use rusqlite::Connection;
 use tempfile::tempdir;
 use void_notes_core::db::{initialize_schema, DirectiveNoteRepository};
 use void_notes_core::models::DirectiveNote;

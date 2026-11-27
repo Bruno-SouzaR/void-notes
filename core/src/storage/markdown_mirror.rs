@@ -1,8 +1,8 @@
+use crate::models::DirectiveNote;
+use crate::Result;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use crate::models::DirectiveNote;
-use crate::Result;
 
 /// Asynchronous, fault-tolerant reconciler for mirroring SQLite DirectiveNotes into daily Markdown files.
 #[derive(Debug, Clone)]
@@ -101,7 +101,9 @@ mod tests {
         note2.deleted_at = Some(chrono::Utc::now());
 
         let date_str = note1.created_at.format("%Y-%m-%d").to_string();
-        let path = mirror.reconcile_day(&date_str, &[note1, note2]).expect("reconcile failed");
+        let path = mirror
+            .reconcile_day(&date_str, &[note1, note2])
+            .expect("reconcile failed");
 
         let content = fs::read_to_string(&path).expect("read failed");
         assert!(content.contains("Nota 1 ativa"));

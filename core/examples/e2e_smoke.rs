@@ -88,7 +88,10 @@ fn main() -> anyhow::Result<()> {
     assert!(md_path.exists());
     let md_content = fs::read_to_string(&md_path)?;
     println!("\n[6/6] Verifying Markdown file mirror at {:?}...", md_path);
-    println!("------ File Content Start ------\n{}\n------- File Content End -------", md_content.trim());
+    println!(
+        "------ File Content Start ------\n{}\n------- File Content End -------",
+        md_content.trim()
+    );
     assert!(md_content.contains("Lembrar de comprar cafe torrado e revisar documentacao."));
     println!("      ✓ Markdown mirror contains formatted directive with timestamp.");
 

@@ -14,7 +14,12 @@ fn test_sanitizer_wake_word_prefix_variations() {
 
     for (input, expected) in cases {
         let result = DirectiveFormatter::format(input);
-        assert_eq!(result, Some(expected.to_string()), "Failed for input: {}", input);
+        assert_eq!(
+            result,
+            Some(expected.to_string()),
+            "Failed for input: {}",
+            input
+        );
     }
 }
 
@@ -50,12 +55,16 @@ fn test_sanitizer_rejects_whisper_silence_hallucinations() {
         "legendas pela comunidade",
         "obrigado por assistir ao vídeo",
         "thanks for watching!",
-        "void", // Wake word only
+        "void",      // Wake word only
         "hey void.", // Wake word only with punctuation
     ];
 
     for input in hallucinations {
         let result = DirectiveFormatter::format(input);
-        assert_eq!(result, None, "Expected None for hallucination input: '{}'", input);
+        assert_eq!(
+            result, None,
+            "Expected None for hallucination input: '{}'",
+            input
+        );
     }
 }

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
+use rusqlite::Connection;
 use std::f32::consts::PI;
 use std::path::PathBuf;
-use rusqlite::Connection;
 use tempfile::{tempdir, TempDir};
 use void_notes_core::audio::SAMPLE_RATE;
 use void_notes_core::db::initialize_schema;

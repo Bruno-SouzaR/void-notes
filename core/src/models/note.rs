@@ -46,7 +46,11 @@ pub struct DirectiveNote {
 
 impl DirectiveNote {
     /// Creates a new DirectiveNote with a fresh client-generated UUID v4.
-    pub fn new(content: impl Into<String>, raw_transcription: impl Into<String>, audio_duration_ms: u32) -> Self {
+    pub fn new(
+        content: impl Into<String>,
+        raw_transcription: impl Into<String>,
+        audio_duration_ms: u32,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4().to_string(),

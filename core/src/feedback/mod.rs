@@ -29,10 +29,7 @@ pub enum FeedbackAction {
     /// Trigger device haptic vibration motor.
     TriggerHaptic(HapticPattern),
     /// Show a system desktop or push notification.
-    EmitNotification {
-        title: String,
-        body: String,
-    },
+    EmitNotification { title: String, body: String },
 }
 
 /// Domain events triggering feedback.
@@ -81,7 +78,9 @@ impl FeedbackController {
                 if self.profile == FeedbackProfile::Normal {
                     actions.push(FeedbackAction::PlayAudioChime("chime_complete.wav"));
                 }
-                actions.push(FeedbackAction::TriggerHaptic(HapticPattern::DoubleConfirmation));
+                actions.push(FeedbackAction::TriggerHaptic(
+                    HapticPattern::DoubleConfirmation,
+                ));
             }
             FeedbackEvent::DirectiveRevoked => {
                 if self.profile == FeedbackProfile::Normal {
@@ -134,8 +133,12 @@ mod tests {
         let controller = FeedbackController::new(FeedbackProfile::SilentMeeting);
         let actions = controller.resolve_feedback(FeedbackEvent::MicrophoneError);
 
-        assert!(actions.contains(&FeedbackAction::TriggerHaptic(HapticPattern::RejectionPulse)));
-        let has_notif = actions.iter().any(|a| matches!(a, FeedbackAction::EmitNotification { .. }));
+        assert!(actions.contains(&FeedbackAction::TriggerHaptic(
+            HapticPattern::RejectionPulse
+        )));
+        let has_notif = actions
+            .iter()
+            .any(|a| matches!(a, FeedbackAction::EmitNotification { .. }));
         assert!(has_notif);
     }
 }

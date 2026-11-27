@@ -1,6 +1,6 @@
+use parking_lot::Mutex;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use parking_lot::Mutex;
 
 use crate::feedback::FeedbackProfile;
 use crate::models::DirectiveNote;
@@ -17,14 +17,12 @@ pub fn init_engine(db_path: String, notes_dir: String, silent_mode: bool) -> Res
         FeedbackProfile::Normal
     };
 
-    let service = VoidService::new(
-        &PathBuf::from(db_path),
-        &PathBuf::from(notes_dir),
-        profile,
-    )?;
+    let service = VoidService::new(&PathBuf::from(db_path), &PathBuf::from(notes_dir), profile)?;
 
     if GLOBAL_SERVICE.get().is_some() {
-        return Err(VoidError::Domain("void-notes engine is already initialized".to_string()));
+        return Err(VoidError::Domain(
+            "void-notes engine is already initialized".to_string(),
+        ));
     }
 
     let _ = GLOBAL_SERVICE.set(Mutex::new(service));

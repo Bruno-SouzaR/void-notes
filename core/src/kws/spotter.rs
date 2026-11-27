@@ -112,7 +112,9 @@ mod tests {
 
         // Arm trigger -> returns WakeWordDetection
         detector.arm_trigger();
-        let detection = detector.process_samples(&dummy_chunk).expect("expected detection");
+        let detection = detector
+            .process_samples(&dummy_chunk)
+            .expect("expected detection");
         assert_eq!(detection.name, "Void");
         assert!(detection.confidence >= 0.55);
 
@@ -123,7 +125,9 @@ mod tests {
         // Advance simulated time past refractory window (1500ms)
         detector.advance_time(1600);
         detector.arm_trigger();
-        let second_detection = detector.process_samples(&dummy_chunk).expect("expected second detection");
+        let second_detection = detector
+            .process_samples(&dummy_chunk)
+            .expect("expected second detection");
         assert_eq!(second_detection.name, "Void");
     }
 }

@@ -1,5 +1,5 @@
-use rusqlite::Connection;
 use crate::Result;
+use rusqlite::Connection;
 
 /// Initializes the database schema with WAL mode and indices.
 pub fn initialize_schema(conn: &Connection) -> Result<()> {

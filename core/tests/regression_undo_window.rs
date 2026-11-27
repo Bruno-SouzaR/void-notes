@@ -38,7 +38,9 @@ fn test_regression_undo_window_revokes_from_db_and_markdown() {
     assert_eq!(service.list_today_notes().unwrap().len(), 1);
     let today_str = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let md_path = notes_dir.join(format!("{}.md", today_str));
-    assert!(fs::read_to_string(&md_path).unwrap().contains("Comprar cafe amarga."));
+    assert!(fs::read_to_string(&md_path)
+        .unwrap()
+        .contains("Comprar cafe amarga."));
 
     // 2. Execute UndoWindow revocation
     let (revoked_note, actions) = service.revoke_latest_directive().unwrap();

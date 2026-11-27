@@ -4,13 +4,8 @@ pub struct DirectiveFormatter;
 
 impl DirectiveFormatter {
     /// List of wake word prefixes to strip from the beginning of transcripts.
-    const WAKE_WORD_PREFIXES: &'static [&'static str] = &[
-        "hey void",
-        "ei void",
-        "ok void",
-        "okay void",
-        "void",
-    ];
+    const WAKE_WORD_PREFIXES: &'static [&'static str] =
+        &["hey void", "ei void", "ok void", "okay void", "void"];
 
     /// Hallucinations or filler phrases commonly output by small Whisper models during silence.
     const HALLUCINATION_BLACKLIST: &'static [&'static str] = &[
@@ -50,7 +45,9 @@ impl DirectiveFormatter {
 
         // Clean leading punctuation, whitespace, and filler chars
         let cleaned = stripped
-            .trim_start_matches(|c: char| c.is_whitespace() || c == ',' || c == '.' || c == '-' || c == ':')
+            .trim_start_matches(|c: char| {
+                c.is_whitespace() || c == ',' || c == '.' || c == '-' || c == ':'
+            })
             .trim();
 
         if cleaned.is_empty() || cleaned.len() < 2 {
@@ -94,7 +91,10 @@ mod tests {
     fn test_format_preserves_existing_punctuation() {
         let input = "void onde está o arquivo de configuração?";
         let output = DirectiveFormatter::format(input);
-        assert_eq!(output, Some("Onde está o arquivo de configuração?".to_string()));
+        assert_eq!(
+            output,
+            Some("Onde está o arquivo de configuração?".to_string())
+        );
     }
 
     #[test]

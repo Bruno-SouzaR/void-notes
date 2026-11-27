@@ -122,7 +122,10 @@ fn main() -> anyhow::Result<()> {
     let _ = recording_process.wait();
     let rec_duration = start_rec.elapsed();
 
-    println!("\n[3/3] Gravação finalizada ({:.2}s). Processando áudio...", rec_duration.as_secs_f32());
+    println!(
+        "\n[3/3] Gravação finalizada ({:.2}s). Processando áudio...",
+        rec_duration.as_secs_f32()
+    );
 
     let f32_samples = read_wav_as_f32(&temp_wav)?;
     let _ = std::fs::remove_file(&temp_wav);
@@ -132,7 +135,8 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    println!("      Total de amostras capturadas: {} ({:.2}s de áudio PCM a 16 kHz)",
+    println!(
+        "      Total de amostras capturadas: {} ({:.2}s de áudio PCM a 16 kHz)",
         f32_samples.len(),
         f32_samples.len() as f32 / 16000.0
     );
@@ -187,8 +191,12 @@ fn main() -> anyhow::Result<()> {
         println!("    \"{}\"", n.content);
         println!("\n  Detalhes Técnicos:");
         println!("    - ID da Nota (UUID v4): {}", n.id);
-        println!("    - Duração do Áudio:     {:.2}s", n.audio_duration_ms as f32 / 1000.0);
-        println!("    - Tempo de Inferência:  {:.2}s (RTF: {:.2}x)",
+        println!(
+            "    - Duração do Áudio:     {:.2}s",
+            n.audio_duration_ms as f32 / 1000.0
+        );
+        println!(
+            "    - Tempo de Inferência:  {:.2}s (RTF: {:.2}x)",
             inference_time.as_secs_f32(),
             inference_time.as_secs_f32() / (n.audio_duration_ms as f32 / 1000.0)
         );
@@ -201,7 +209,10 @@ fn main() -> anyhow::Result<()> {
 
         if md_path.exists() {
             let content = std::fs::read_to_string(&md_path)?;
-            println!("\n------ Conteúdo do Arquivo Markdown ({:?}) ------", md_path);
+            println!(
+                "\n------ Conteúdo do Arquivo Markdown ({:?}) ------",
+                md_path
+            );
             println!("{}", content.trim());
             println!("--------------------------------------------------");
         }

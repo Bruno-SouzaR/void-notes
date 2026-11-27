@@ -1,7 +1,7 @@
-use std::path::Path;
-use std::sync::Arc;
 use parking_lot::Mutex;
 use rusqlite::Connection;
+use std::path::Path;
+use std::sync::Arc;
 
 use crate::audio::{AudioRingBuffer, EndpointResult, EnergyGate, SpeechEndpointDetector};
 use crate::db::{initialize_schema, DirectiveNoteRepository};
@@ -131,10 +131,10 @@ impl VoidService {
 
         // Active session: Tier 2 Endpointing
         let is_speech = self.energy_gate.lock().is_speech(samples);
-        let endpoint_res = self
-            .endpoint_detector
-            .lock()
-            .process_frame(is_speech, chunk_duration_ms, samples);
+        let endpoint_res =
+            self.endpoint_detector
+                .lock()
+                .process_frame(is_speech, chunk_duration_ms, samples);
 
         match endpoint_res {
             EndpointResult::Continuing => Ok((None, actions)),
@@ -216,8 +216,8 @@ impl VoidService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use crate::feedback::HapticPattern;
+    use tempfile::tempdir;
 
     #[test]
     fn test_void_service_end_to_end_flow() {

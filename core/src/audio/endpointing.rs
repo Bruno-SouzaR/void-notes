@@ -154,7 +154,9 @@ impl SpeechEndpointDetector {
 
                 if self.trailing_silence_ms >= silence_limit {
                     self.state = EndpointState::Completed;
-                    return EndpointResult::DirectiveComplete(std::mem::take(&mut self.audio_buffer));
+                    return EndpointResult::DirectiveComplete(std::mem::take(
+                        &mut self.audio_buffer,
+                    ));
                 }
             }
 
