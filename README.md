@@ -17,7 +17,7 @@ offline and saved as a timestamped note in SQLite and in a daily Markdown file.
 | Transcription (`whisper.cpp` CLI, `base-q5_1` / `small-q5_1`, pt-BR) | works on Linux |
 | Note storage (SQLite WAL) + Markdown mirror | works, 50 Rust tests |
 | Desktop app (Flutter + GTK) | builds and runs on Linux |
-| Android / iOS | **not implemented** — no `android/` or `ios/` target exists yet |
+| Android / iOS | Flutter targets scaffolded (`android/`, `ios/`) but never built or run; audio capture and wake word are Linux-only |
 | In-process Rust wake word / STT | **not implemented** — traits and mocks only; today the real audio work is done by the daemon binaries |
 
 This is an active project, not a finished product. Running it end to end currently means running the shell
@@ -100,8 +100,9 @@ silent-meeting mode leaking sound (`regression_silent_meeting.rs`) and the undo 
 
 ## Known limitations
 
-- **Linux only.** The Flutter project has no Android or iOS target yet; the README used to promise them, the
-  repository does not have them.
+- **Only Linux has been run.** The Flutter project carries the default `android/` and `ios/` runners, but the
+  capture pipeline (`pw-record`, `sherpa-onnx`, `whisper-cli`) is Linux-only, so neither target does anything
+  useful yet.
 - **Transcription quality varies.** Short captures with background audio still produce repeated phrases; the
   formatter strips the common hallucinations but cannot fix a bad capture.
 - **Model files are not shipped.** A fresh clone does not run until `bin/` and `models/` are populated.
